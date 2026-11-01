@@ -7,6 +7,9 @@ on:
     - cron: "50 2 * * *"    # 11:50 KST 점심
     - cron: "50 9 * * *"    # 18:50 KST 저녁
   workflow_dispatch: {}     # Actions 탭에서 "Run workflow" 버튼으로 수동 실행
+  push:                     # 웹사이트 화면(index.html)을 고치면 수집 없이 사이트만 다시 배포
+    branches: [main]
+    paths: ["site/index.html"]
 
 permissions:
   contents: write           # 상태(state/)와 리포트(reports/)를 저장소에 다시 커밋하기 위해
@@ -17,6 +20,7 @@ concurrency:
 
 jobs:
   radar:
+    if: github.event_name != 'push'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -41,6 +45,29 @@ jobs:
         run: |
           git config user.name  "subculture-radar-bot"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add state reports
+          git add state reports site/data
           git diff --cached --quiet || git commit -m "radar: $(TZ=Asia/Seoul date '+%Y-%m-%d %H:%M') 수집"
           git push
+
+  # 웹사이트(GitHub Pages) 배포
+  site:
+    needs: radar
+    if: ${{ always() && (needs.radar.result == 'success' || needs.radar.result == 'skipped') }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: main            # 방금 수집해서 커밋한 최신 데이터 포함
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+      - id: deployment
+        uses: actions/deploy-pages@v4

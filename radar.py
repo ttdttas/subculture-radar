@@ -55,6 +55,8 @@ REDDIT_UA = "python:subculture-radar:v1.0 (personal news digest)"
 ATOM = "{http://www.w3.org/2005/Atom}"
 REDDIT_DELAY = 2.0
 KOREAN_BONUS = 2.0
+SITE_ITEMS_PER_GAME = 25   # 웹사이트에 남길 게임별 소식 수
+SITE_KEEP_RUNS = 90        # 웹사이트에 남길 회차 수 (하루 3회 × 30일)
 WEEKDAYS = "월화수목금토일"
 
 
@@ -396,9 +398,9 @@ def fetch_trends(geo: str) -> list[dict]:
 
 def match_trends(game: dict, trends: list[dict]) -> list[Item]:
     items = []
+    pat = alias_pattern(game["aliases"])
     for t in trends:
-        hay = " ".join([t["title"], *t["news"]]).lower()
-        if any(a.lower() in hay for a in game["aliases"]):
+        if pat.search(" ".join([t["title"], *t["news"]])):
             url = t["url"] or "https://trends.google.com/trending?geo=" + t["geo"]
             items.append(Item(game["id"], f"'{t['title']}' 급상승 검색어 ({t['geo']})", url,
                               "Google 트렌드", "trend", t["date"], traffic=t["traffic"], tags={"trend"}))
@@ -408,6 +410,18 @@ def match_trends(game: dict, trends: list[dict]) -> list[Item]:
 # ════════════════════════════════════════════
 #  분류 / 점수 / 중복 제거
 # ════════════════════════════════════════════
+def alias_pattern(aliases: list[str]) -> re.Pattern:
+    """게임 이름 매칭. 한글 이름은 앞 글자가 한글이면 제외 (예: '복원신청' 안의 '원신')."""
+    parts = []
+    for a in aliases:
+        esc = re.escape(a)
+        if a.isascii():
+            parts.append(rf"\b{esc}\b")
+        else:
+            parts.append(rf"(?<![가-힣]){esc}")
+    return re.compile("|".join(parts), re.IGNORECASE)
+
+
 def compile_keywords(kw: dict) -> dict[str, re.Pattern]:
     out = {}
     for cat, words in kw.items():
@@ -534,9 +548,9 @@ def collect(cfg: dict, state_dir: Path, now: datetime) -> dict:
             raw += fetch_youtube(g, ch, since)
         raw += match_trends(g, trends)
 
-        aliases = [a.lower() for a in g["aliases"]]
+        apat = alias_pattern(g["aliases"])
         raw = [it for it in raw
-               if not (it.kind == "news" and not any(a in it.title.lower() for a in aliases))  # 게임 이름 없는 기사 제외
+               if not (it.kind == "news" and not apat.search(it.title))  # 게임 이름 없는 기사 제외
                and not (it.kind != "trend" and "exclude" in pats and pats["exclude"].search(it.title + " " + it.flair))]
         items = merge_duplicates(raw)
         for it in items:
@@ -566,7 +580,9 @@ def collect(cfg: dict, state_dir: Path, now: datetime) -> dict:
         log.info("%s: 수집 %d → 새 소식 %d", g["name"], len(items), len(fresh))
         report["new_count"] += len(fresh)
         report["games"].append({"cfg": g, "sections": sections, "suggest": sugg[:8],
-                                "new_suggest": new_sugg[:6], "fresh": len(fresh)})
+                                "new_suggest": new_sugg[:6], "fresh": len(fresh),
+                                "all_fresh": sorted(fresh, key=lambda x: -x.score)[:SITE_ITEMS_PER_GAME],
+                                "all_suggest": sugg[:20]})
 
     # 오래된 기록 정리
     cutoff = now - timedelta(days=st.get("seen_retention_days", 7))
@@ -693,6 +709,50 @@ def send_telegram(report: dict, token: str, chat_id: str) -> None:
 
 
 # ════════════════════════════════════════════
+#  웹사이트 데이터 (site/data/*.json)
+# ════════════════════════════════════════════
+def item_to_dict(it: Item) -> dict:
+    return {
+        "title": it.title, "url": it.url, "source": it.source, "kind": it.kind,
+        "published": it.published.isoformat() if it.published else None,
+        "upvotes": it.upvotes, "comments": it.comments, "flair": it.flair,
+        "traffic": it.traffic, "coverage": it.coverage, "score": it.score,
+        "tags": sorted(it.tags), "section": primary_section(it),
+        "reliability": reliability(it) if "leak" in it.tags and "trend" not in it.tags else None,
+    }
+
+
+def write_site(report: dict, base: Path, schedule: list[str]) -> str:
+    now = report["now"]
+    run_id = f"{now:%Y-%m-%d-%H%M}"
+    data_dir = base / "site" / "data"
+    runs_dir = data_dir / "runs"
+    runs_dir.mkdir(parents=True, exist_ok=True)
+    games = []
+    for gd in report["games"]:
+        g = gd["cfg"]
+        games.append({"id": g["id"], "name": g["name"], "emoji": g["emoji"], "color": g.get("color", "888888"),
+                      "fresh": gd["fresh"], "items": [item_to_dict(i) for i in gd["all_fresh"]],
+                      "suggest": gd["all_suggest"], "new_suggest": gd["new_suggest"]})
+    run = {"id": run_id, "time": now.isoformat(), "slot": slot_name(now),
+           "new_count": report["new_count"], "games": games}
+    save_json(runs_dir / f"{run_id}.json", run)
+
+    idx = load_json(data_dir / "index.json", {"runs": []})
+    runs = [r for r in idx.get("runs", []) if r["id"] != run_id]
+    runs.insert(0, {"id": run_id, "time": run["time"], "slot": run["slot"], "new_count": run["new_count"],
+                    "counts": {g["id"]: g["fresh"] for g in games}})
+    for old in runs[SITE_KEEP_RUNS:]:
+        (runs_dir / f"{old['id']}.json").unlink(missing_ok=True)
+    runs = runs[:SITE_KEEP_RUNS]
+    save_json(data_dir / "index.json", {
+        "updated": run["time"], "schedule": schedule,
+        "games": [{"id": g["id"], "name": g["name"], "emoji": g["emoji"], "color": g["color"]} for g in games],
+        "runs": runs})
+    return run_id
+
+
+# ════════════════════════════════════════════
 #  실행
 # ════════════════════════════════════════════
 def run_once(cfg: dict, base: Path, dry_run: bool = False) -> str:
@@ -708,6 +768,7 @@ def run_once(cfg: dict, base: Path, dry_run: bool = False) -> str:
         (base / "reports" / "latest.md").write_text(md, "utf-8")
         save_json(state_dir / "seen.json", report["seen"])
         save_json(state_dir / "suggest.json", report["suggest"])
+        write_site(report, base, cfg["settings"].get("schedule", []))
 
         if hook := os.getenv("DISCORD_WEBHOOK_URL"):
             send_discord(report, hook)

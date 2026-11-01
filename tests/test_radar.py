@@ -90,6 +90,11 @@ class RadarTest(unittest.TestCase):
         self.assertIn("급상승 검색어", md)                # 트렌드 매칭
         self.assertIn("🔍 많이 찾는 검색어", md)
         self.assertTrue((self.tmp / "reports" / "latest.md").exists())
+        idx = json.loads((self.tmp / "site" / "data" / "index.json").read_text("utf-8"))
+        self.assertEqual(len(idx["runs"]), 1)
+        run = json.loads((self.tmp / "site" / "data" / "runs" / f"{idx['runs'][0]['id']}.json").read_text("utf-8"))
+        gen = next(g for g in run["games"] if g["id"] == "genshin")
+        self.assertTrue(any(i["reliability"] == "높음" for i in gen["items"]))
 
         # 두 번째 실행: 같은 소식은 다시 안 나와야 함
         md2 = radar.run_once(self.cfg, self.tmp)
@@ -111,6 +116,13 @@ class RadarTest(unittest.TestCase):
         for sub in ["a", "b", "c", "d"]:
             self.assertEqual(radar.fetch_reddit(g, sub, since), [])
         self.assertEqual(len(calls), 3)   # a(json+rss), b(rss) 이후엔 요청 안 함
+
+    def test_alias_match(self):
+        p = radar.alias_pattern(["원신", "Genshin"])
+        self.assertIsNotNone(p.search("원신 7.2 업데이트"))
+        self.assertIsNotNone(p.search("‘원신’의 신규 캐릭터"))
+        self.assertIsNone(p.search("주민센터 복원신청 안내"))
+        self.assertIsNone(p.search("GenshinX"))
 
     def test_next_run(self):
         now = datetime(2026, 11, 1, 20, 0, tzinfo=radar.KST)
