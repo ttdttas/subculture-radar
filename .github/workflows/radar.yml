@@ -2,7 +2,7 @@ name: 서브컬쳐 레이더
 
 on:
   schedule:
-    - cron: "*/10 * * * *"    # 10분마다 수집 (GitHub 사정으로 몇 분씩 밀릴 수 있음)
+    - cron: "3-59/10 * * * *"  # 10분마다 수집 (매시 3,13,23…분. 정각은 GitHub가 붐벼서 피함)
   workflow_dispatch:
     inputs:
       notify:
