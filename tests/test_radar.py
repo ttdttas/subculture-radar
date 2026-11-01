@@ -83,6 +83,9 @@ def fake_get(url, headers=None, data=None, timeout=20, retries=2):
                 ("아주 오래된 원신 기사", "https://ex.com/old", "옛날신문", 40),
             ])
         return rss([])
+    if "gall.dcinside.com" in url and "board/view" in url:
+        return ('<div class="write_div" style="x"><script>var a={{each}};</script><p>7.3 신캐 스킬은 '
+                '이렇게 바뀜<br>궁극기 계수 상향</p></div><div class="btn_recommend_box">').encode()
     if "gall.dcinside.com" in url:
         return DC_HTML if "onshinproject" in url else b"<table></table>"
     if "arca.live" in url:
@@ -151,6 +154,8 @@ class RadarTest(unittest.TestCase):
         self.assertTrue(rd["title_ko"].startswith("[KO] "))         # 영어 → 번역
         self.assertIsNone(news["title_ko"])                         # 한국어는 그대로
         self.assertTrue(any(i["kind"] == "trend" for i in gen))     # 트렌드
+        dc = next(i for i in gen if i["title"] == "원신 7.3 신캐 스킬 정리")
+        self.assertEqual(dc["excerpt"], "7.3 신캐 스킬은 이렇게 바뀜 궁극기 계수 상향")   # 본문 미리보기 (스크립트 제거)
 
         kw = json.loads((self.tmp / "site" / "data" / "keywords.json").read_text("utf-8"))
         gk = kw["games"]["genshin"]
@@ -212,6 +217,9 @@ class RadarTest(unittest.TestCase):
         self.assertEqual(radar.apply_glossary("HSR Kafka", g), "스타레일 카프카")
         self.assertFalse(radar.needs_translation("원신 7.2 업데이트"))
         self.assertTrue(radar.needs_translation("ブルアカ新生徒"))
+        self.assertEqual(radar.source_lang("Honkai: Star Rail 4.7 launches"), "en")
+        self.assertEqual(radar.source_lang("ブルアカ新生徒"), "ja")
+        self.assertEqual(radar.source_lang("原神 新角色"), "zh-CN")
 
     def test_block_skip(self):
         calls = []

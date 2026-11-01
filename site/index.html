@@ -84,9 +84,27 @@
   .item:hover { background: var(--card-hover); border-color: #343a55; }
   .item .bar { align-self: stretch; border-radius: 0 4px 4px 0; background: var(--c); }
   .item.read { opacity: .45; }
+  .item.read.open, .item.read:hover { opacity: 1; }
   .item .t { font-weight: 600; font-size: 15px; line-height: 1.45; }
   .item .orig { font-size: 12.5px; color: var(--mute); margin-top: 2px; line-height: 1.4; }
   .item .m { font-size: 12.5px; color: var(--sub); margin-top: 4px; display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: center; }
+  .item { cursor: pointer; }
+  .item.open { background: var(--card-hover); border-color: color-mix(in srgb, var(--c) 45%, var(--line)); }
+  .item .acts { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; align-self: start; padding-top: 2px; }
+  .item .go { width: 30px; height: 30px; display: grid; place-items: center; border-radius: 8px; border: 1px solid var(--line); color: var(--sub); font-size: 14px; }
+  .item .go:hover { color: var(--text); border-color: var(--accent2); background: var(--bg2); }
+  .detail { display: none; margin-top: 12px; padding-top: 12px; border-top: 1px dashed var(--line); cursor: default; }
+  .item.open .detail { display: block; animation: fadein .18s ease; }
+  @keyframes fadein { from { opacity: 0; transform: translateY(-4px); } }
+  .excerpt { margin: 0 0 12px; padding: 12px 14px; background: var(--bg2); border-left: 3px solid var(--c); border-radius: 0 10px 10px 0; font-size: 14.5px; line-height: 1.65; color: var(--text); }
+  .excerpt small { display: block; font-size: 11.5px; color: var(--mute); margin-bottom: 4px; font-weight: 700; letter-spacing: .03em; }
+  .nopreview { font-size: 13px; color: var(--sub); margin: 0 0 12px; padding: 10px 12px; background: var(--bg2); border-radius: 10px; }
+  .info { display: grid; grid-template-columns: auto 1fr; gap: 4px 14px; font-size: 13px; margin-bottom: 12px; }
+  .info dt { color: var(--mute); } .info dd { margin: 0; color: var(--sub); word-break: break-all; }
+  .btns { display: flex; gap: 8px; flex-wrap: wrap; }
+  .btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px; border-radius: 10px; font-size: 13.5px; font-weight: 700; border: 1px solid var(--line); background: var(--bg2); color: var(--text); cursor: pointer; }
+  .btn.primary { background: var(--c); border-color: var(--c); color: #0d0f17; }
+  .btn:hover { filter: brightness(1.12); }
   .item .score { font-size: 12px; color: var(--mute); font-variant-numeric: tabular-nums; text-align: right; min-width: 34px; }
   .new { font-size: 10px; font-weight: 800; color: #fff; background: var(--accent); border-radius: 4px; padding: 1px 5px; margin-right: 6px; vertical-align: 2px; letter-spacing: .04em; }
   .tr { font-size: 10.5px; font-weight: 700; color: var(--accent2); border: 1px solid rgba(124,140,255,.4); border-radius: 4px; padding: 0 4px; margin-right: 6px; vertical-align: 2px; }
@@ -143,7 +161,7 @@
     .sechead { flex-direction: column; align-items: flex-start; }
     .sechead .left { flex-direction: column; align-items: flex-start; }
     .item .score { display: none; }
-    .item { grid-template-columns: 4px 1fr; }
+    .item { grid-template-columns: 4px 1fr auto; gap: 10px; }
     .topcard { min-height: 0; }
     .top { gap: 8px; }
     .status { text-align: left; }
@@ -248,7 +266,7 @@
     period: 24, game: "all", sec: "all", src: "all", q: "", limit: 40,
     sort: store.get("radar-sort", "score"),
     read: new Set(store.get("radar-read", [])), hideRead: store.get("radar-hide-read", false),
-    lastVisit: store.get("radar-last-visit", null),
+    lastVisit: store.get("radar-last-visit", null), open: null,
   };
   $("#hideRead").checked = S.hideRead;
   const syncSeg = (sel, attr, val) => document.querySelectorAll(`${sel} button`).forEach((x) => x.classList.toggle("on", x.dataset[attr] === String(val)));
@@ -297,16 +315,46 @@
     return p.join("");
   }
 
+  const fmtTime = (iso) => { if (!iso) return "-"; const d = new Date(iso); return `${d.getMonth() + 1}/${d.getDate()} ${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")} (${ago(iso)})`; };
+  function detailHTML(it) {
+    const rows = [];
+    rows.push(["출처", esc(it.source) + (it.coverage > 1 ? ` 외 ${it.coverage - 1}곳` : "")]);
+    if (it.published) rows.push(["올라온 시각", fmtTime(it.published)]);
+    rows.push(["레이더 발견", fmtTime(it.first_seen)]);
+    if (it.upvotes || it.comments) rows.push(["반응", `👍 ${short(it.upvotes)} · 💬 ${short(it.comments)}${it.views ? " · 👁 " + short(it.views) : ""}`]);
+    if (it.flair) rows.push(["말머리", esc(it.flair)]);
+    if (it.reliability) rows.push(["신뢰도", esc(it.reliability)]);
+    if (it.traffic) rows.push(["검색량", esc(it.traffic)]);
+    if (it.title_ko) rows.push(["원문 제목", esc(it.title)]);
+    let body;
+    if (it.excerpt) body = `<div class="excerpt"><small>본문 미리보기</small>${esc(it.excerpt)}</div>`;
+    else if (it.kind === "news") body = `<div class="nopreview">📰 뉴스 기사는 언론사 사이트에서 읽을 수 있어요. 아래 <b>원문 열기</b>를 눌러 주세요.</div>`;
+    else if (it.kind === "trend") body = `<div class="nopreview">📈 구글 트렌드에서 지금 급상승 중인 검색어예요.</div>`;
+    else if (it.source === "디시 개념글" && !("excerpt" in it)) body = `<div class="nopreview">⏳ 본문 미리보기를 가져오는 중이에요 (다음 수집 때 채워져요)</div>`;
+    else body = `<div class="nopreview">글 내용은 원문에서 볼 수 있어요.</div>`;
+    return `<div class="detail">${body}
+      <dl class="info">${rows.map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join("")}</dl>
+      <div class="btns">
+        <a class="btn primary" href="${esc(it.url)}" target="_blank" rel="noopener" data-url="${esc(it.url)}">원문 열기 ↗</a>
+        <button class="btn" data-copy="${esc(it.url)}">🔗 링크 복사</button>
+        <button class="btn" data-close>접기</button>
+      </div></div>`;
+  }
+
   function renderItem(it) {
-    return `<a class="item${S.read.has(it.url) ? " read" : ""}" href="${esc(it.url)}" target="_blank" rel="noopener" data-url="${esc(it.url)}" style="--c:${gcolor(it.game)}">
+    return `<div class="item${S.read.has(it.url) ? " read" : ""}${S.open === it.id ? " open" : ""}" data-id="${esc(it.id)}" data-url="${esc(it.url)}" tabindex="0" role="button" aria-expanded="${S.open === it.id}" style="--c:${gcolor(it.game)}">
       <div class="bar"></div>
       <div>
         <div class="t">${isNew(it) ? '<span class="new">NEW</span>' : ""}${it.title_ko ? '<span class="tr" title="자동 번역">번역</span>' : ""}${highlight(titleOf(it))}</div>
         ${it.title_ko ? `<div class="orig">${highlight(it.title)}</div>` : ""}
         <div class="m">${meta(it)}</div>
+        ${detailHTML(it)}
       </div>
-      <div class="score" title="화제도 점수">${(it.score || 0).toFixed(1)}</div>
-    </a>`;
+      <div class="acts">
+        <a class="go" href="${esc(it.url)}" target="_blank" rel="noopener" data-url="${esc(it.url)}" title="원문 열기">↗</a>
+        <div class="score" title="화제도 점수">${(it.score || 0).toFixed(1)}</div>
+      </div>
+    </div>`;
   }
 
   function renderTop(items) {
@@ -315,7 +363,7 @@
     if (!top.length) return "";
     return `<div class="top">${top.map((it, i) => {
       const g = gameMeta(it.game);
-      return `<a class="topcard" href="${esc(it.url)}" target="_blank" rel="noopener" data-url="${esc(it.url)}" style="--c:${gcolor(it.game)}">
+      return `<a class="topcard" href="${esc(it.url)}" data-top="${esc(it.id)}" style="--c:${gcolor(it.game)}">
         <div class="rank">TOP ${i + 1} · ${g.emoji} ${esc(g.name)}</div>
         <div class="t">${esc(titleOf(it))}</div>
         ${it.title_ko ? `<div class="orig">${esc(it.title)}</div>` : ""}
@@ -436,7 +484,36 @@
   $("#q").addEventListener("input", (e) => { clearTimeout(qt); qt = setTimeout(() => { S.q = e.target.value.trim(); S.limit = 40; render(); }, 200); });
   $("#hideRead").addEventListener("change", (e) => { S.hideRead = e.target.checked; store.set("radar-hide-read", S.hideRead); render(); });
   $("#markAll").addEventListener("click", () => { document.querySelectorAll("#feed [data-url]").forEach((el) => markRead(el.dataset.url)); if (S.hideRead) render(); });
-  document.addEventListener("click", (e) => { const a = e.target.closest("a[data-url]"); if (a) markRead(a.dataset.url); });
+  function toggle(el, force) {
+    const id = el.dataset.id, open = force ?? !el.classList.contains("open");
+    document.querySelectorAll(".item.open").forEach((x) => { if (x !== el) { x.classList.remove("open"); x.setAttribute("aria-expanded", "false"); } });
+    el.classList.toggle("open", open); el.setAttribute("aria-expanded", String(open));
+    S.open = open ? id : null;
+    if (open) markRead(el.dataset.url);
+  }
+  document.addEventListener("click", (e) => {
+    const a = e.target.closest("a[data-url]");
+    if (a) { markRead(a.dataset.url); return; }                       // 원문 링크는 그대로 새 탭
+    const top = e.target.closest("[data-top]");
+    if (top) {
+      e.preventDefault();
+      const el = document.querySelector(`.item[data-id="${CSS.escape(top.dataset.top)}"]`);
+      if (el) { toggle(el, true); el.scrollIntoView({ behavior: "smooth", block: "center" }); }
+      else window.open(top.href, "_blank", "noopener");
+      return;
+    }
+    const cp = e.target.closest("[data-copy]");
+    if (cp) { navigator.clipboard?.writeText(cp.dataset.copy).then(() => toast("🔗 링크를 복사했어요")).catch(() => {}); return; }
+    const cl = e.target.closest("[data-close]");
+    if (cl) { toggle(cl.closest(".item"), false); return; }
+    if (e.target.closest(".detail")) return;                          // 펼친 내용 안 클릭은 무시 (글자 복사 등)
+    const it = e.target.closest(".item");
+    if (it && !window.getSelection()?.toString()) toggle(it);
+  });
+  document.addEventListener("keydown", (e) => {
+    const it = e.target.closest?.(".item");
+    if (it && (e.key === "Enter" || e.key === " ") && e.target === it) { e.preventDefault(); toggle(it); }
+  });
   document.addEventListener("auxclick", (e) => { const a = e.target.closest("a[data-url]"); if (a) markRead(a.dataset.url); });
   $("#more").addEventListener("click", (e) => { if (e.target.id === "moreBtn") { S.limit += 40; render(); } });
   $("#toast").addEventListener("click", () => { window.scrollTo({ top: 0, behavior: "smooth" }); $("#toast").classList.remove("show"); });

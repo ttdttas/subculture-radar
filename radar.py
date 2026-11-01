@@ -68,6 +68,8 @@ COMMUNITY_DELAY = 1.0
 TRANSLATE_DELAY = 0.3
 SUGGEST_DELAY = 0.2
 KOREAN_BONUS = 2.0
+PREVIEW_MAX = 25             # 한 회차에 본문 미리보기를 가져올 글 수
+EXCERPT_LEN = 180            # 미리보기 글자 수 (원문 재배포가 되지 않게 짧게)
 DEADLINE = 0.0               # 이 시각(time.time)이 지나면 남은 요청은 다음 회차로
 MAX_NEW_PER_KIND = {"news": 60, "community": 30, "reddit": 20, "trend": 10, "video": 10}  # 한 번에 저장할 게임별 새 소식 수
 TRANSLATE_BACKFILL = 40      # 한 회차에 추가로 번역할 이전 소식 수
@@ -141,6 +143,7 @@ class Item:
     traffic: str = ""             # 구글 트렌드 검색량
     rank: int = -1                # 점수 정보가 없을 때 인기순 순위 (0 = 1위)
     title_ko: str = ""            # 자동 번역 제목 (원래 한국어면 비어 있음)
+    excerpt: str = ""             # 본문 첫머리 미리보기 (짧게)
     tags: set = field(default_factory=set)
     score: float = 0.0
     outlets: set = field(default_factory=set)
@@ -224,6 +227,7 @@ def parse_feed(data: bytes | None) -> list[dict]:
     for e in root.iter(ATOM + "entry"):
         link_el = e.find(ATOM + "link")
         out.append({"title": strip_tags(child_text(e, ATOM + "title")),
+                    "content": child_text(e, ATOM + "content"),
                     "link": link_el.get("href", "") if link_el is not None else "",
                     "date": parse_date(child_text(e, ATOM + "published") or child_text(e, ATOM + "updated")),
                     "source": "", "el": e})
@@ -478,8 +482,34 @@ def fetch_reddit(game: dict, sub: str, since: datetime) -> list[Item]:
     rss = http_get(f"https://www.reddit.com/r/{sub}/top/.rss?t=day", {"User-Agent": REDDIT_UA}, retries=1)
     site_result("Reddit", rss is not None)
     for i, e in enumerate(parse_feed(rss)[:20]):
-        items.append(Item(game["id"], e["title"], e["link"], f"r/{sub}", "reddit", e["date"], rank=i))
+        items.append(Item(game["id"], e["title"], e["link"], f"r/{sub}", "reddit", e["date"], rank=i,
+                          excerpt=make_excerpt(e.get("content", ""))))
     return items
+
+
+def make_excerpt(html_text: str) -> str:
+    """HTML 본문 → 짧은 미리보기 글. 스크립트·템플릿·링크 문구 제거."""
+    t = re.sub(r"<(script|style)[^>]*>.*?</\1>", " ", html_text or "", flags=re.S | re.I)
+    t = re.sub(r"\{\{.*?\}\}", " ", t, flags=re.S)
+    t = re.sub(r"<br\s*/?>|</p>|</div>", " ", t, flags=re.I)
+    t = strip_tags(t)
+    t = re.sub(r"- dc official App|추천검색\s*새로고침|submitted by\s+/u/\S+|/u/\S+\s*님이 제출|"
+               r"\[(?:link|comments|링크|댓글)\]", " ", t)
+    t = re.sub(r"\s+", " ", t).strip()
+    return t if len(t) <= EXCERPT_LEN else t[:EXCERPT_LEN].rstrip() + "…"
+
+
+def fetch_dc_excerpt(url: str) -> str | None:
+    if not site_ok("디시 미리보기"):
+        return None
+    raw = http_get(url, {"Referer": "https://gall.dcinside.com/"}, retries=0, timeout=12)
+    site_result("디시 미리보기", raw is not None)
+    if not raw:
+        return None
+    h = raw.decode("utf-8", "replace")
+    m = (re.search(r'<div class="write_div"[^>]*>(.*?)<div class="(?:con_banner|recommend_kapcode|btn_recommend_box|recom_bottom_box|positionr)', h, re.S)
+         or re.search(r'<div class="write_div"[^>]*>(.{0,20000})', h, re.S))
+    return make_excerpt(m.group(1)) if m else ""
 
 
 # ════════════════════════════════════════════
@@ -650,12 +680,21 @@ def apply_glossary(text: str, glossary: dict[str, str]) -> str:
     return text
 
 
+def source_lang(text: str) -> str:
+    # 용어집으로 한국어 단어가 섞이면 '자동 감지'가 한국어로 착각해 번역을 안 해서, 원문 언어를 직접 정함
+    if re.search(r"[\u3040-\u30ff]", text):
+        return "ja"
+    if re.search(r"[\u4e00-\u9fff]", text) and not re.search(r"[A-Za-z]{3,}", text):
+        return "zh-CN"
+    return "en"
+
+
 def translate_ko(text: str, glossary: dict[str, str]) -> str | None:
     if not site_ok("구글 번역"):
         return None
     q = apply_glossary(text, glossary)
     url = "https://translate.googleapis.com/translate_a/single?" + urllib.parse.urlencode(
-        {"client": "gtx", "sl": "auto", "tl": "ko", "dt": "t", "q": q})
+        {"client": "gtx", "sl": source_lang(text), "tl": "ko", "dt": "t", "q": q})
     raw = http_get(url, retries=0, timeout=10)
     site_result("구글 번역", raw is not None)
     if not raw:
@@ -799,6 +838,8 @@ def item_to_dict(it: Item, first_seen: str) -> dict:
         "traffic": it.traffic, "coverage": it.coverage, "score": it.score, "tags": sorted(it.tags),
         "section": primary_section(it),
         "reliability": reliability(it) if "leak" in it.tags and "trend" not in it.tags else None,
+        # excerpt 키가 없으면 '아직 미리보기 안 가져옴' (디시는 나중 회차에 채움)
+        **({"excerpt": it.excerpt} if it.excerpt else {}),
     }
 
 
@@ -820,9 +861,14 @@ def collect(cfg: dict, data_dir: Path, now: datetime, force_keywords: bool = Fal
     flair_ex = compile_keywords({"x": cfg["keywords"].get("exclude_flair", [])})["x"]
     glossary = cfg.get("glossary", {})
     tr_cache: dict[str, str] = load_json(state_dir / "translations.json", {})
+    # 예전 버그로 '용어집만 바뀌고 번역 안 된' 제목은 버리고 다시 번역
+    tr_cache = {k: v for k, v in tr_cache.items() if v != apply_glossary(k, cfg.get("glossary", {}))}
     meta = load_json(state_dir / "meta.json", {})
     store: dict[str, dict] = {d["id"]: d for d in load_json(data_dir / "site" / "data" / "items.json",
                                                              {"items": []}).get("items", [])}
+    for d in store.values():
+        if d.get("title_ko") and d["title_ko"] == apply_glossary(d["title"], cfg.get("glossary", {})):
+            d["title_ko"] = None
     news_since = now - timedelta(hours=st.get("lookback_hours", 14))
     comm_since = now - timedelta(hours=st.get("community_hours", 24))
     now_iso = now.isoformat(timespec="seconds")
@@ -887,6 +933,22 @@ def collect(cfg: dict, data_dir: Path, now: datetime, force_keywords: bool = Fal
             store[it.key] = item_to_dict(it, now_iso)
         new_counts[g["id"]] = len(fresh)
         log.info("%s: 수집 %d → 새 소식 %d", g["name"], len(items), len(fresh))
+
+    # 디시 글 본문 첫머리 가져오기 (점수 높은 것부터, 회차당 PREVIEW_MAX 개)
+    todo = sorted((d for d in store.values() if d["source"] == "디시 개념글" and "excerpt" not in d),
+                  key=lambda d: -d.get("score", 0))[:PREVIEW_MAX]
+    got = 0
+    for d in todo:
+        ex = fetch_dc_excerpt(d["url"])
+        if ex is None:
+            if not site_ok("디시 미리보기"):
+                break
+            continue
+        d["excerpt"] = ex or None
+        got += 1
+        time.sleep(COMMUNITY_DELAY / 2)
+    if got:
+        log.info("디시 글 미리보기 %d개", got)
 
     # 지난 회차에 번역 못 한 제목 채우기 (번역이 막혔던 경우)
     if st.get("translate", True) and site_ok("구글 번역"):
