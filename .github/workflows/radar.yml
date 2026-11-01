@@ -1,0 +1,46 @@
+name: 서브컬쳐 레이더
+
+on:
+  schedule:
+    # GitHub 은 UTC 기준. 한국시간 = UTC + 9
+    - cron: "50 22 * * *"   # 07:50 KST 아침
+    - cron: "50 2 * * *"    # 11:50 KST 점심
+    - cron: "50 9 * * *"    # 18:50 KST 저녁
+  workflow_dispatch: {}     # Actions 탭에서 "Run workflow" 버튼으로 수동 실행
+
+permissions:
+  contents: write           # 상태(state/)와 리포트(reports/)를 저장소에 다시 커밋하기 위해
+
+concurrency:
+  group: radar
+  cancel-in-progress: false
+
+jobs:
+  radar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: 수집 & 알림
+        env:
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          REDDIT_CLIENT_ID: ${{ secrets.REDDIT_CLIENT_ID }}
+          REDDIT_CLIENT_SECRET: ${{ secrets.REDDIT_CLIENT_SECRET }}
+          NAVER_CLIENT_ID: ${{ secrets.NAVER_CLIENT_ID }}
+          NAVER_CLIENT_SECRET: ${{ secrets.NAVER_CLIENT_SECRET }}
+        run: python radar.py
+
+      - name: 상태·리포트 저장
+        run: |
+          git config user.name  "subculture-radar-bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add state reports
+          git diff --cached --quiet || git commit -m "radar: $(TZ=Asia/Seoul date '+%Y-%m-%d %H:%M') 수집"
+          git push

@@ -1,0 +1,106 @@
+# ─────────────────────────────────────────────
+#  서브컬쳐 레이더 설정 파일
+#  게임 추가/삭제, 검색어, 키워드를 여기서 바꾸면 됩니다.
+# ─────────────────────────────────────────────
+
+[settings]
+# --loop 모드(내 PC/서버에서 상시 실행)일 때 실행 시각 (한국시간)
+schedule = ["07:50", "11:50", "18:50"]
+# 이 시간보다 오래된 글은 "새 소식"으로 치지 않음
+lookback_hours = 14
+# 게임별 카테고리당 최대 표시 개수
+max_per_section = 3
+# 이미 보낸 소식을 기억하는 기간(일) — 같은 소식 중복 알림 방지
+seen_retention_days = 7
+# 구글 트렌드 급상승 검색어를 볼 국가
+trend_geos = ["KR", "US", "JP"]
+
+# ─── 분류 키워드 (영문은 단어 단위, 한글은 포함 여부로 판단) ───
+[keywords]
+leak = ["유출", "루머", "찌라시", "베타", "데이터마이닝", "데마", "썰", "카더라",
+        "leak", "leaks", "leaked", "rumor", "rumour", "beta", "datamine", "datamined", "speculation"]
+official = ["공식", "발표", "공개", "업데이트", "버전", "픽업", "배너", "특별 방송", "특별방송", "프리뷰",
+            "생방송", "리딤", "쿠폰", "교환 코드", "점검", "콜라보", "출시", "트레일러", "PV", "신규 캐릭터", "신캐", "신규 학생",
+            "official", "announce", "announced", "announcement", "livestream", "special program", "banner",
+            "update", "version", "trailer", "redeem", "maintenance", "collab", "collaboration", "teaser", "drip"]
+hot = ["논란", "사과", "보상", "화제", "난리", "이슈", "매출", "1위", "역대", "불만", "환불", "버그", "오류",
+       "서버", "밈", "확률", "천장", "너프", "하향", "상향",
+       "controversy", "apology", "compensation", "backlash", "outrage", "record", "revenue", "grossing",
+       "bug", "viral", "drama", "nerf", "buff", "boycott"]
+# 이 단어가 제목/플레어에 있으면 아예 제외 (팬아트·코스프레·짤 위주 글 거르기). 보고 싶으면 지우세요.
+exclude = ["팬아트", "코스프레", "fanart", "fan art", "art by", "cosplay", "OC", "artwork", "comic", "meme", "shitpost",
+           "@"]
+
+# ─── 게임 목록 ───
+# aliases          : 구글 트렌드 급상승 검색어에서 이 게임을 찾을 때 쓰는 이름들
+# news_ko / news_en: 구글 뉴스 검색어 (한국어 / 영어)
+# subreddits       : 커뮤니티 화제글을 볼 Reddit 서브레딧
+# suggest_ko / _en : 자동완성(사람들이 많이 검색하는 조합)을 뽑을 씨앗 검색어
+# youtube_channels : (선택) 공식 유튜브 채널 ID. 채널 페이지 → 공유 → 채널 ID 복사
+# color            : 디스코드 카드 색 (16진수)
+
+[[games]]
+id = "bluearchive"
+name = "블루 아카이브"
+emoji = "📘"
+color = "128AFA"
+aliases = ["블루아카이브", "블루 아카이브", "블루아카", "Blue Archive", "ブルーアーカイブ", "ブルアカ"]
+news_ko = ["블루아카이브", "블루 아카이브"]
+news_en = ["\"Blue Archive\""]
+subreddits = ["BlueArchive"]
+suggest_ko = ["블루아카이브", "블루아카 ", "블아 신규"]
+suggest_en = ["blue archive "]
+youtube_channels = []
+
+[[games]]
+id = "genshin"
+name = "원신"
+emoji = "🌟"
+color = "E8C26B"
+aliases = ["원신", "Genshin", "原神"]
+news_ko = ["원신"]
+news_en = ["\"Genshin Impact\""]
+subreddits = ["Genshin_Impact", "Genshin_Impact_Leaks"]
+suggest_ko = ["원신 ", "원신 유출", "원신 픽업"]
+suggest_en = ["genshin ", "genshin leaks "]
+youtube_channels = []
+
+[[games]]
+id = "zzz"
+name = "젠레스 존 제로"
+emoji = "📺"
+color = "F5D90A"
+aliases = ["젠레스 존 제로", "젠레스존제로", "젠존제", "Zenless Zone Zero", "Zenless", "ゼンレスゾーンゼロ", "ゼンゼロ"]
+news_ko = ["젠레스 존 제로"]
+news_en = ["\"Zenless Zone Zero\""]
+subreddits = ["ZZZ_Official", "Zenlesszonezeroleaks_"]
+suggest_ko = ["젠레스 존 제로 ", "젠존제 "]
+suggest_en = ["zzz leaks ", "zenless zone zero "]
+youtube_channels = []
+
+[[games]]
+id = "hsr"
+name = "붕괴: 스타레일"
+emoji = "🚂"
+color = "9B7BFF"
+aliases = ["스타레일", "붕괴 스타레일", "Star Rail", "Honkai Star Rail", "崩壊：スターレイル", "スタレ"]
+news_ko = ["스타레일"]
+news_en = ["\"Honkai: Star Rail\""]
+subreddits = ["HonkaiStarRail", "HonkaiStarRail_leaks"]
+suggest_ko = ["스타레일 ", "스타레일 유출"]
+suggest_en = ["hsr leaks ", "honkai star rail "]
+youtube_channels = []
+
+[[games]]
+id = "wuwa"
+name = "명조: 워더링 웨이브"
+emoji = "🌊"
+color = "2EC4B6"
+aliases = ["명조", "워더링 웨이브", "워더링웨이브", "Wuthering Waves", "WuWa", "鳴潮"]
+# '명조'만 쓰면 역사(明朝) 기사가 섞여서 게임 관련 단어를 함께 씀
+news_ko = ["명조 워더링", "명조 쿠로"]
+news_en = ["\"Wuthering Waves\""]
+subreddits = ["WutheringWaves", "WutheringWavesLeaks"]
+suggest_ko = ["명조 워더링", "명조 픽업", "명조 신캐"]
+suggest_en = ["wuthering waves ", "wuwa leaks "]
+youtube_channels = []
