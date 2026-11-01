@@ -1,0 +1,55 @@
+{
+ "updated": "2026-11-01T23:20:46.111056+09:00",
+ "schedule": [
+  "07:50",
+  "11:50",
+  "18:50"
+ ],
+ "games": [
+  {
+   "id": "bluearchive",
+   "name": "블루 아카이브",
+   "emoji": "📘",
+   "color": "128AFA"
+  },
+  {
+   "id": "genshin",
+   "name": "원신",
+   "emoji": "🌟",
+   "color": "E8C26B"
+  },
+  {
+   "id": "zzz",
+   "name": "젠레스 존 제로",
+   "emoji": "📺",
+   "color": "F5D90A"
+  },
+  {
+   "id": "hsr",
+   "name": "붕괴: 스타레일",
+   "emoji": "🚂",
+   "color": "9B7BFF"
+  },
+  {
+   "id": "wuwa",
+   "name": "명조: 워더링 웨이브",
+   "emoji": "🌊",
+   "color": "2EC4B6"
+  }
+ ],
+ "runs": [
+  {
+   "id": "2026-11-01-2320",
+   "time": "2026-11-01T23:20:46.111056+09:00",
+   "slot": "저녁",
+   "new_count": 23,
+   "counts": {
+    "bluearchive": 1,
+    "genshin": 20,
+    "zzz": 0,
+    "hsr": 1,
+    "wuwa": 1
+   }
+  }
+ ]
+}
