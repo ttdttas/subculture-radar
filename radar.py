@@ -560,7 +560,7 @@ def score_keywords(lists: dict[str, list[str]], game: dict, extra: dict[str, dic
       - 여러 출처에 동시에 뜨면 보너스
       - 나무위키 인기 검색어 / 구글 트렌드 급상승은 가중치 큼
     그리고 게임 안에서 최고점 대비 비율로 색 단계를 정한다.
-      hot(빨강) ≥ 70% · warm(주황) ≥ 45% · mild(노랑) ≥ 25% · cold(회색)
+      hot(빨강) ≥ 70% · warm(주황) ≥ 50% · mild(노랑) ≥ 35% · cold(회색)
     """
     names = {kw_norm(a) for a in game["aliases"]} | {kw_norm(game["name"])}
     acc: dict[str, dict] = {}
@@ -589,7 +589,7 @@ def score_keywords(lists: dict[str, list[str]], game: dict, extra: dict[str, dic
     top = ranked[0]["score"] if ranked else 1
     for e in ranked:
         r = e["score"] / top
-        e["tier"] = "hot" if r >= 0.70 else "warm" if r >= 0.45 else "mild" if r >= 0.25 else "cold"
+        e["tier"] = "hot" if r >= 0.70 else "warm" if r >= 0.50 else "mild" if r >= 0.35 else "cold"
         e["score"] = round(e["score"], 2)
         e["sources"] = sorted(e["sources"], key=lambda s: -SOURCE_WEIGHTS.get(s, 1))
     return ranked
