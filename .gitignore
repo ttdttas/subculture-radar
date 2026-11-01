@@ -1,2 +1,8 @@
 __pycache__/
 *.tmp
+# 내 PC에서 돌릴 때 생기는 데이터 (GitHub에서는 data 브랜치에 저장)
+state/
+reports/
+site/data/
+work/
+_site/

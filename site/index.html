@@ -4,163 +4,150 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
+<meta name="theme-color" content="#0d0f17">
 <title>서브컬쳐 레이더</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📡</text></svg>">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
 <style>
   :root {
-    --bg: #0d0f17;
-    --bg2: #141724;
-    --card: #191d2d;
-    --card-hover: #1f2438;
-    --line: #262b40;
-    --text: #e8eaf3;
-    --sub: #9aa0b8;
-    --mute: #646a85;
-    --accent: #ff5c8a;
-    --accent2: #7c8cff;
-    --leak: #ffb547;
-    --official: #4fd1c5;
-    --hot: #ff6b6b;
+    --bg: #0d0f17; --bg2: #141724; --card: #191d2d; --card-hover: #1f2438; --line: #262b40;
+    --text: #e8eaf3; --sub: #9aa0b8; --mute: #646a85;
+    --accent: #ff5c8a; --accent2: #7c8cff;
+    --leak: #ffb547; --official: #4fd1c5; --hot: #ff6b6b;
+    --t-hot: #ff4757; --t-warm: #ff9f43; --t-mild: #ffd43b; --t-cold: #8a90a8;
     --radius: 14px;
   }
   * { box-sizing: border-box; }
   html, body { margin: 0; background: var(--bg); color: var(--text); }
   body {
     font-family: "Pretendard Variable", Pretendard, -apple-system, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
-    font-size: 15px; line-height: 1.5; -webkit-font-smoothing: antialiased;
+    font-size: 15px; line-height: 1.5; -webkit-font-smoothing: antialiased; min-height: 100vh;
     background:
       radial-gradient(900px 500px at 85% -10%, rgba(124,140,255,.12), transparent 60%),
-      radial-gradient(700px 400px at -10% 10%, rgba(255,92,138,.10), transparent 60%),
-      var(--bg);
+      radial-gradient(700px 400px at -10% 10%, rgba(255,92,138,.10), transparent 60%), var(--bg);
     background-attachment: fixed;
-    min-height: 100vh;
   }
   a { color: inherit; text-decoration: none; }
-  button, input, select { font: inherit; color: inherit; }
-
+  button, input { font: inherit; color: inherit; }
   .wrap { max-width: 1240px; margin: 0 auto; padding: 24px 20px 80px; }
 
-  /* 헤더 */
   header { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin-bottom: 22px; }
   .brand { display: flex; align-items: center; gap: 14px; }
-  .logo {
-    width: 46px; height: 46px; border-radius: 13px; display: grid; place-items: center; font-size: 24px;
-    background: linear-gradient(135deg, var(--accent), var(--accent2));
-    box-shadow: 0 6px 24px rgba(255,92,138,.35);
-  }
+  .logo { width: 46px; height: 46px; border-radius: 13px; display: grid; place-items: center; font-size: 24px;
+    background: linear-gradient(135deg, var(--accent), var(--accent2)); box-shadow: 0 6px 24px rgba(255,92,138,.35); }
   h1 { margin: 0; font-size: 22px; font-weight: 800; letter-spacing: -.02em; }
   .tagline { color: var(--sub); font-size: 13px; margin-top: 2px; }
   .status { text-align: right; font-size: 13px; color: var(--sub); }
   .status b { color: var(--text); font-weight: 600; }
-  .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #3ddc97; margin-right: 6px; box-shadow: 0 0 10px #3ddc97; vertical-align: 1px; }
+  .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #3ddc97; margin-right: 6px;
+    box-shadow: 0 0 10px #3ddc97; vertical-align: 1px; animation: pulse 2s infinite; }
+  .dot.stale { background: var(--leak); box-shadow: 0 0 10px var(--leak); }
+  @keyframes pulse { 50% { opacity: .4; } }
 
-  /* 컨트롤 */
   .controls { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-bottom: 14px; }
-  .seg { display: inline-flex; background: var(--bg2); border: 1px solid var(--line); border-radius: 11px; padding: 3px; }
-  .seg button {
-    border: 0; background: transparent; padding: 7px 13px; border-radius: 8px; cursor: pointer; color: var(--sub); font-weight: 600; font-size: 14px;
-  }
+  .seg { display: inline-flex; background: var(--bg2); border: 1px solid var(--line); border-radius: 11px; padding: 3px; max-width: 100%; overflow-x: auto; scrollbar-width: none; }
+  .seg button { border: 0; background: transparent; padding: 7px 12px; border-radius: 8px; cursor: pointer; color: var(--sub); font-weight: 600; font-size: 14px; flex: none; }
   .seg button.on { background: var(--card-hover); color: var(--text); box-shadow: inset 0 0 0 1px var(--line); }
-  select, .search {
-    background: var(--bg2); border: 1px solid var(--line); border-radius: 11px; padding: 9px 12px; font-size: 14px; outline: none;
-  }
-  select:focus, .search:focus { border-color: var(--accent2); }
-  .search { flex: 1; min-width: 200px; }
+  .search { flex: 1; min-width: 200px; background: var(--bg2); border: 1px solid var(--line); border-radius: 11px; padding: 9px 12px; font-size: 14px; outline: none; }
+  .search:focus { border-color: var(--accent2); }
   .chips { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 18px; }
-  .chip {
-    border: 1px solid var(--line); background: var(--bg2); border-radius: 999px; padding: 6px 13px; cursor: pointer;
-    font-size: 14px; font-weight: 600; color: var(--sub); display: inline-flex; gap: 6px; align-items: center; transition: .15s;
-  }
+  .chip { border: 1px solid var(--line); background: var(--bg2); border-radius: 999px; padding: 6px 13px; cursor: pointer;
+    font-size: 14px; font-weight: 600; color: var(--sub); display: inline-flex; gap: 6px; align-items: center; transition: .15s; }
   .chip:hover { color: var(--text); }
   .chip.on { color: var(--text); border-color: var(--c, var(--accent)); background: color-mix(in srgb, var(--c, var(--accent)) 16%, var(--bg2)); }
   .chip .n { font-size: 12px; color: var(--mute); font-variant-numeric: tabular-nums; }
   .chip.on .n { color: var(--text); opacity: .8; }
 
-  .layout { display: grid; grid-template-columns: minmax(0, 1fr) 330px; gap: 22px; align-items: start; }
-  @media (max-width: 960px) { .layout { grid-template-columns: 1fr; } .side { position: static; } }
-  @media (max-width: 600px) {
-    .wrap { padding: 18px 14px 60px; }
-    .chips { flex-wrap: nowrap; overflow-x: auto; margin: 0 -14px 16px; padding: 0 14px 4px; scrollbar-width: none; }
-    .chip { flex: none; }
-    .sechead { flex-direction: column; align-items: flex-start; gap: 8px; }
-    .sechead .seg { max-width: 100%; }
-    .sechead .seg { overflow-x: auto; }
-    .sechead .seg button { flex: none; padding: 7px 10px; }
-    .item .score { display: none; }
-    .item { grid-template-columns: 4px 1fr; }
-    .status { text-align: left; }
-  }
+  .layout { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 22px; align-items: start; }
+  @media (max-width: 960px) { .layout { grid-template-columns: 1fr; } .side { position: static !important; } }
 
-  /* TOP */
   .top { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 22px; }
   @media (max-width: 760px) { .top { grid-template-columns: 1fr; } }
-  .topcard {
-    position: relative; border-radius: var(--radius); padding: 16px 16px 14px; overflow: hidden;
+  .topcard { position: relative; border-radius: var(--radius); padding: 16px 16px 14px; overflow: hidden;
     background: linear-gradient(160deg, color-mix(in srgb, var(--c) 22%, var(--card)), var(--card) 70%);
     border: 1px solid color-mix(in srgb, var(--c) 35%, var(--line));
-    display: flex; flex-direction: column; gap: 8px; min-height: 140px; transition: transform .15s;
-  }
+    display: flex; flex-direction: column; gap: 6px; min-height: 140px; transition: transform .15s; }
   .topcard:hover { transform: translateY(-2px); }
   .rank { font-size: 12px; font-weight: 800; letter-spacing: .08em; color: var(--c); }
   .topcard .t { font-weight: 700; font-size: 15.5px; line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+  .topcard .orig { font-size: 12px; color: var(--sub); opacity: .75; display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; }
   .topcard .m { margin-top: auto; font-size: 12.5px; color: var(--sub); }
 
-  /* 피드 */
-  .sechead { display: flex; align-items: center; justify-content: space-between; margin: 0 0 10px; }
-  .sechead h2 { font-size: 15px; margin: 0; color: var(--sub); font-weight: 700; letter-spacing: -.01em; }
+  .sechead { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; margin: 0 0 10px; }
+  .sechead .left { display: flex; gap: 8px; flex-wrap: wrap; }
   .tools { display: flex; gap: 12px; align-items: center; font-size: 13px; color: var(--sub); }
   .tools label { display: flex; gap: 6px; align-items: center; cursor: pointer; }
   .linkbtn { border: 0; background: none; color: var(--accent2); cursor: pointer; padding: 0; font-size: 13px; }
   .feed { display: flex; flex-direction: column; gap: 8px; }
-  .item {
-    display: grid; grid-template-columns: 4px 1fr auto; gap: 14px; align-items: center;
-    background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px 12px 0; transition: .12s;
-  }
+  .item { display: grid; grid-template-columns: 4px 1fr auto; gap: 14px; align-items: center;
+    background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px 12px 0; transition: .12s; }
   .item:hover { background: var(--card-hover); border-color: #343a55; }
   .item .bar { align-self: stretch; border-radius: 0 4px 4px 0; background: var(--c); }
   .item.read { opacity: .45; }
   .item .t { font-weight: 600; font-size: 15px; line-height: 1.45; }
+  .item .orig { font-size: 12.5px; color: var(--mute); margin-top: 2px; line-height: 1.4; }
   .item .m { font-size: 12.5px; color: var(--sub); margin-top: 4px; display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: center; }
   .item .score { font-size: 12px; color: var(--mute); font-variant-numeric: tabular-nums; text-align: right; min-width: 34px; }
+  .new { font-size: 10px; font-weight: 800; color: #fff; background: var(--accent); border-radius: 4px; padding: 1px 5px; margin-right: 6px; vertical-align: 2px; letter-spacing: .04em; }
+  .tr { font-size: 10.5px; font-weight: 700; color: var(--accent2); border: 1px solid rgba(124,140,255,.4); border-radius: 4px; padding: 0 4px; margin-right: 6px; vertical-align: 2px; }
   .badge { font-size: 11.5px; font-weight: 700; padding: 2px 7px; border-radius: 6px; white-space: nowrap; }
   .b-official { color: var(--official); background: rgba(79,209,197,.12); }
   .b-leak { color: var(--leak); background: rgba(255,181,71,.13); }
   .b-hot { color: var(--hot); background: rgba(255,107,107,.12); }
   .b-game { color: var(--c); background: color-mix(in srgb, var(--c) 14%, transparent); }
-  .rel { font-size: 11.5px; color: var(--mute); }
+  .flair { font-size: 11.5px; color: var(--sub); border: 1px solid var(--line); border-radius: 5px; padding: 0 5px; }
   .rel.high { color: #3ddc97; } .rel.mid { color: var(--leak); } .rel.low { color: var(--hot); }
+  .rel { font-size: 11.5px; }
   mark { background: rgba(255,92,138,.3); color: var(--text); border-radius: 3px; padding: 0 1px; }
   .empty { padding: 40px 20px; text-align: center; color: var(--sub); background: var(--card); border: 1px dashed var(--line); border-radius: var(--radius); }
   .more { margin-top: 12px; text-align: center; }
   .more button { background: var(--bg2); border: 1px solid var(--line); padding: 9px 18px; border-radius: 10px; cursor: pointer; color: var(--sub); }
 
-  /* 사이드 */
   .side { display: flex; flex-direction: column; gap: 14px; position: sticky; top: 16px; }
   .panel { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 16px; }
-  .panel h3 { margin: 0 0 12px; font-size: 14px; font-weight: 700; display: flex; justify-content: space-between; align-items: baseline; }
+  .panel h3 { margin: 0 0 12px; font-size: 14px; font-weight: 700; display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
   .panel h3 small { color: var(--mute); font-weight: 500; font-size: 12px; }
+  .legend { display: flex; gap: 10px; flex-wrap: wrap; font-size: 11.5px; color: var(--sub); margin: -4px 0 12px; }
+  .legend i { display: inline-block; width: 9px; height: 9px; border-radius: 3px; margin-right: 4px; vertical-align: 0; }
+  .kwgroup { margin-bottom: 12px; }
+  .kwgroup:last-child { margin-bottom: 0; }
+  .kwgroup .gname { font-size: 12px; color: var(--sub); margin-bottom: 6px; font-weight: 600; }
   .kw { display: flex; flex-wrap: wrap; gap: 6px; }
-  .kw a {
-    font-size: 13px; padding: 4px 10px; border-radius: 8px; background: var(--bg2); border: 1px solid var(--line); color: var(--sub);
-  }
-  .kw a:hover { color: var(--text); border-color: var(--accent2); }
-  .kw a.new { color: var(--text); border-color: rgba(255,92,138,.5); background: rgba(255,92,138,.1); }
-  .rankl { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
-  .rankl li { display: grid; grid-template-columns: 22px 1fr auto; gap: 8px; align-items: center; font-size: 13.5px; padding: 5px 4px; border-radius: 7px; }
-  .rankl li:hover { background: var(--bg2); }
-  .rankl .no { color: var(--mute); font-weight: 700; font-size: 12px; text-align: right; font-variant-numeric: tabular-nums; }
-  .rankl li:nth-child(-n+3) .no { color: var(--accent); }
-  .rankl .cnt { font-size: 11.5px; color: var(--mute); font-variant-numeric: tabular-nums; }
-  .spark { display: flex; align-items: flex-end; justify-content: flex-end; gap: 3px; height: 64px; }
-  .spark div { flex: 1; max-width: 18px; background: var(--accent2); opacity: .5; border-radius: 3px 3px 0 0; min-height: 2px; cursor: pointer; transition: .1s; }
-  .spark div:hover, .spark div.on { opacity: 1; background: var(--accent); }
-  .sparkcap { display: flex; justify-content: space-between; font-size: 11px; color: var(--mute); margin-top: 6px; }
-  .hint { font-size: 12px; color: var(--mute); margin-top: 8px; }
+  .kw a { font-size: 13px; padding: 4px 10px; border-radius: 8px; border: 1px solid; font-weight: 600; position: relative; transition: .12s; }
+  .kw a:hover { filter: brightness(1.2); }
+  .kw a.hot  { color: #fff; background: color-mix(in srgb, var(--t-hot) 75%, transparent); border-color: var(--t-hot); box-shadow: 0 0 14px rgba(255,71,87,.35); }
+  .kw a.warm { color: #1a1205; background: var(--t-warm); border-color: var(--t-warm); }
+  .kw a.mild { color: #1d1802; background: color-mix(in srgb, var(--t-mild) 85%, transparent); border-color: var(--t-mild); }
+  .kw a.cold { color: var(--sub); background: var(--bg2); border-color: var(--line); font-weight: 500; }
+  .kw a .nb { position: absolute; top: -6px; right: -5px; font-size: 9px; font-weight: 800; background: var(--accent); color: #fff; border-radius: 4px; padding: 0 3px; }
+  .hint { font-size: 12px; color: var(--mute); margin-top: 10px; }
+  .chart { display: flex; align-items: flex-end; gap: 2px; height: 70px; }
+  .chart div { flex: 1; background: var(--accent2); opacity: .55; border-radius: 3px 3px 0 0; min-height: 2px; }
+  .chart div:hover { opacity: 1; background: var(--accent); }
+  .chartcap { display: flex; justify-content: space-between; font-size: 11px; color: var(--mute); margin-top: 6px; }
+  .srcs { display: flex; flex-wrap: wrap; gap: 6px; font-size: 12px; }
+  .srcs span { padding: 2px 8px; border-radius: 6px; background: var(--bg2); border: 1px solid var(--line); color: var(--sub); }
+  .srcs span.off { opacity: .4; text-decoration: line-through; }
 
+  .toast { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%) translateY(120px); background: var(--accent); color: #fff;
+    padding: 10px 18px; border-radius: 999px; font-weight: 700; font-size: 14px; box-shadow: 0 8px 30px rgba(255,92,138,.4); transition: .3s; cursor: pointer; z-index: 10; }
+  .toast.show { transform: translateX(-50%) translateY(0); }
   .loading { color: var(--sub); padding: 60px 0; text-align: center; }
   footer { margin-top: 40px; font-size: 12px; color: var(--mute); text-align: center; }
   footer a { color: var(--sub); text-decoration: underline; }
+
+  @media (max-width: 600px) {
+    .wrap { padding: 18px 14px 60px; }
+    .chips { flex-wrap: nowrap; overflow-x: auto; margin: 0 -14px 16px; padding: 0 14px 4px; scrollbar-width: none; }
+    .chip { flex: none; }
+    .sechead { flex-direction: column; align-items: flex-start; }
+    .sechead .left { flex-direction: column; align-items: flex-start; }
+    .item .score { display: none; }
+    .item { grid-template-columns: 4px 1fr; }
+    .topcard { min-height: 0; }
+    .top { gap: 8px; }
+    .status { text-align: left; }
+  }
 </style>
 </head>
 <body>
@@ -177,12 +164,15 @@
   </header>
 
   <div class="controls">
-    <div class="seg" id="viewSeg">
-      <button data-v="24h" class="on">최근 24시간</button>
-      <button data-v="run">회차별</button>
+    <div class="seg" id="periodSeg">
+      <button data-p="1">1시간</button>
+      <button data-p="6">6시간</button>
+      <button data-p="24" class="on">24시간</button>
+      <button data-p="72">3일</button>
+      <button data-p="168">7일</button>
+      <button data-p="0">전체</button>
     </div>
-    <select id="runSel" hidden></select>
-    <input class="search" id="q" type="search" placeholder="제목 검색 (최근 30일 전체)… 예: 픽업, 유출, 카프카">
+    <input class="search" id="q" type="search" placeholder="제목 검색 (원문·번역 모두)… 예: 픽업, 유출, 카프카">
   </div>
   <div class="chips" id="gameChips"></div>
 
@@ -190,11 +180,22 @@
     <main>
       <div id="topWrap"></div>
       <div class="sechead">
-        <div class="seg" id="secSeg">
-          <button data-s="all" class="on">전체</button>
-          <button data-s="official">📢 공식</button>
-          <button data-s="leak">🕵️ 떡밥·유출</button>
-          <button data-s="hot">🔥 화제</button>
+        <div class="left">
+          <div class="seg" id="secSeg">
+            <button data-s="all" class="on">전체</button>
+            <button data-s="official">📢 공식</button>
+            <button data-s="leak">🕵️ 떡밥·유출</button>
+            <button data-s="hot">🔥 화제</button>
+          </div>
+          <div class="seg" id="srcSeg">
+            <button data-k="all" class="on">모든 출처</button>
+            <button data-k="news">📰 뉴스</button>
+            <button data-k="community">💬 커뮤니티</button>
+          </div>
+          <div class="seg" id="sortSeg">
+            <button data-o="score">⭐ 화제순</button>
+            <button data-o="new">🕒 최신순</button>
+          </div>
         </div>
         <div class="tools">
           <label><input type="checkbox" id="hideRead"> 읽은 것 숨기기</label>
@@ -207,29 +208,31 @@
 
     <aside class="side">
       <div class="panel">
-        <h3>🔍 지금 많이 찾는 검색어 <small id="kwFor"></small></h3>
-        <div class="kw" id="kwNow"></div>
-        <div id="kwNewWrap" hidden>
-          <h3 style="margin-top:16px">🆕 새로 뜬 검색어</h3>
-          <div class="kw" id="kwNew"></div>
+        <h3>🔍 많이 찾는 검색어 <small id="kwUpdated"></small></h3>
+        <div class="legend">
+          <span><i style="background:var(--t-hot)"></i>매우 인기</span>
+          <span><i style="background:var(--t-warm)"></i>인기</span>
+          <span><i style="background:var(--t-mild)"></i>보통</span>
+          <span><i style="background:var(--t-cold)"></i>낮음</span>
         </div>
+        <div id="kwBody"></div>
+        <div class="hint">구글·네이버·유튜브 자동완성 순위, 구글 트렌드 급상승, 나무위키 인기 검색어를 합쳐서 매긴 점수예요. 여러 곳에서 상위에 뜰수록 붉어져요.</div>
       </div>
       <div class="panel">
-        <h3>📈 7일 검색어 랭킹 <small>등장 횟수</small></h3>
-        <ol class="rankl" id="kwRank"></ol>
-        <div class="hint">자동완성에 자주 뜰수록 많이 검색되는 말이에요</div>
+        <h3>⏱ 시간대별 새 소식 <small id="chartMax"></small></h3>
+        <div class="chart" id="chart"></div>
+        <div class="chartcap"><span>24시간 전</span><span>지금</span></div>
       </div>
       <div class="panel">
-        <h3>🗓 회차별 새 소식 <small id="sparkMax"></small></h3>
-        <div class="spark" id="spark"></div>
-        <div class="sparkcap"><span id="sparkFrom"></span><span>최근</span></div>
-        <div class="hint">막대를 누르면 그 회차로 이동</div>
+        <h3>📡 수집 출처</h3>
+        <div class="srcs" id="srcs"></div>
       </div>
     </aside>
   </div>
 
-  <footer>매일 07:50 · 11:50 · 18:50 (KST) 자동 수집 · <a href="https://github.com/ttdttas/subculture-radar" target="_blank" rel="noopener">GitHub</a></footer>
+  <footer>10분마다 자동 수집 · 알림은 매일 07:50 · 11:50 · 18:50 · <a href="https://github.com/ttdttas/subculture-radar" target="_blank" rel="noopener">GitHub</a></footer>
 </div>
+<div class="toast" id="toast"></div>
 
 <script>
 (() => {
@@ -241,23 +244,23 @@
   };
 
   const S = {
-    index: null, cache: new Map(), view: "24h", runId: null, game: "all", sec: "all", q: "",
-    read: new Set(store.get("radar-read", [])), hideRead: store.get("radar-hide-read", false), limit: 40,
+    index: null, items: [], keywords: null,
+    period: 24, game: "all", sec: "all", src: "all", q: "", limit: 40,
+    sort: store.get("radar-sort", "score"),
+    read: new Set(store.get("radar-read", [])), hideRead: store.get("radar-hide-read", false),
+    lastVisit: store.get("radar-last-visit", null),
   };
   $("#hideRead").checked = S.hideRead;
+  const syncSeg = (sel, attr, val) => document.querySelectorAll(`${sel} button`).forEach((x) => x.classList.toggle("on", x.dataset[attr] === String(val)));
+  syncSeg("#sortSeg", "o", S.sort);
 
-  async function getJSON(url) {
-    const r = await fetch(url, { cache: "no-cache" });
-    if (!r.ok) throw new Error(r.status);
-    return r.json();
-  }
-  async function getRun(id) {
-    if (!S.cache.has(id)) S.cache.set(id, getJSON(`data/runs/${id}.json`).catch(() => null));
-    return S.cache.get(id);
-  }
-
-  const gameMeta = (id) => S.index.games.find((g) => g.id === id) || { name: id, emoji: "🎮", color: "888888" };
+  const getJSON = (u) => fetch(u + "?t=" + Date.now()).then((r) => { if (!r.ok) throw new Error(r.status); return r.json(); });
+  const gameMeta = (id) => (S.index?.games || []).find((g) => g.id === id) || { name: id, emoji: "🎮", color: "888888" };
   const gcolor = (id) => "#" + gameMeta(id).color;
+  const titleOf = (it) => it.title_ko || it.title;
+  const timeOf = (it) => new Date(it.published || it.first_seen).getTime();
+  const isNew = (it) => S.lastVisit && it.first_seen > S.lastVisit;
+  const short = (n) => (n >= 10000 ? (n / 10000).toFixed(1) + "만" : n >= 1000 ? (n / 1000).toFixed(1) + "k" : n);
 
   function ago(iso) {
     if (!iso) return "";
@@ -267,179 +270,141 @@
     if (m < 1440) return `${Math.floor(m / 60)}시간 전`;
     return `${Math.floor(m / 1440)}일 전`;
   }
-  const fmtRun = (r) => {
-    const d = new Date(r.time);
-    return `${d.getMonth() + 1}/${d.getDate()} ${r.slot} ${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
-  };
-  const short = (n) => (n >= 1000 ? (n / 1000).toFixed(1) + "k" : n);
-
-  function nextRunText() {
-    const sch = S.index.schedule && S.index.schedule.length ? S.index.schedule : ["07:50", "11:50", "18:50"];
-    const now = new Date();
-    for (let day = 0; day < 2; day++) {
-      for (const hm of sch) {
-        const [h, m] = hm.split(":").map(Number);
-        const t = new Date(now); t.setDate(t.getDate() + day); t.setHours(h, m, 0, 0);
-        if (t > now) return `${day ? "내일 " : ""}${hm}`;
-      }
-    }
-    return "";
-  }
-
-  // 여러 회차의 항목을 합치고 같은 소식은 하나로
-  function mergeRuns(runs) {
-    const seen = new Map();
-    const games = {};
-    for (const run of runs) {
-      if (!run) continue;
-      for (const g of run.games) {
-        games[g.id] ??= { suggest: null, new_suggest: [] };
-        if (!games[g.id].suggest) games[g.id].suggest = g.suggest;   // 가장 최신 회차의 검색어
-        games[g.id].new_suggest.push(...g.new_suggest);
-        for (const it of g.items) {
-          const k = it.url || it.title;
-          if (!seen.has(k)) seen.set(k, { ...it, game: g.id, run: run.id });
-        }
-      }
-    }
-    for (const g of Object.values(games)) g.new_suggest = [...new Set(g.new_suggest)];
-    return { items: [...seen.values()], games };
-  }
-
-  async function currentData() {
-    if (S.q) {
-      const runs = await Promise.all(S.index.runs.map((r) => getRun(r.id)));
-      return mergeRuns(runs);
-    }
-    if (S.view === "run") return mergeRuns([await getRun(S.runId)]);
-    const cutoff = Date.now() - 24 * 3600e3;
-    const ids = S.index.runs.filter((r) => new Date(r.time) >= cutoff).map((r) => r.id);
-    if (!ids.length && S.index.runs.length) ids.push(S.index.runs[0].id);
-    return mergeRuns(await Promise.all(ids.map(getRun)));
-  }
 
   function highlight(text) {
     const t = esc(text);
     if (!S.q) return t;
-    const qs = S.q.split(/\s+/).filter(Boolean).map((w) => w.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"));
-    return qs.length ? t.replace(new RegExp(`(${qs.map(esc).join("|")})`, "gi"), "<mark>$1</mark>") : t;
+    const ws = S.q.split(/\s+/).filter(Boolean).map((w) => esc(w).replace(/[.*+?^${}()|[\]\\]/g, "\\$&"));
+    return ws.length ? t.replace(new RegExp(`(${ws.join("|")})`, "gi"), "<mark>$1</mark>") : t;
   }
 
   const SEC = { official: ["b-official", "📢 공식"], leak: ["b-leak", "🕵️ 유출"], hot: ["b-hot", "🔥 화제"] };
   const REL = { "높음": "high", "보통": "mid", "낮음": "low" };
 
   function meta(it) {
-    const g = gameMeta(it.game);
-    const parts = [];
-    if (S.game === "all") parts.push(`<span class="badge b-game" style="--c:${gcolor(it.game)}">${g.emoji} ${esc(g.name)}</span>`);
+    const g = gameMeta(it.game), p = [];
+    if (S.game === "all") p.push(`<span class="badge b-game" style="--c:${gcolor(it.game)}">${g.emoji} ${esc(g.name)}</span>`);
     const [cls, label] = SEC[it.section] || SEC.hot;
-    parts.push(`<span class="badge ${cls}">${label}</span>`);
-    if (it.reliability && it.reliability !== "확인 안 됨") parts.push(`<span class="rel ${REL[it.reliability] || ""}">신뢰도 ${esc(it.reliability)}</span>`);
-    parts.push(`<span>${esc(it.source)}</span>`);
-    if (it.kind === "reddit" && it.upvotes) parts.push(`<span>⬆ ${short(it.upvotes)} · 💬 ${short(it.comments)}</span>`);
-    if (it.traffic) parts.push(`<span>검색 ${esc(it.traffic)}</span>`);
-    if (it.coverage > 1) parts.push(`<span>매체 ${it.coverage}곳</span>`);
-    if (it.published) parts.push(`<span>${ago(it.published)}</span>`);
-    return parts.join("");
+    p.push(`<span class="badge ${cls}">${label}</span>`);
+    if (it.reliability && REL[it.reliability]) p.push(`<span class="rel ${REL[it.reliability]}">신뢰도 ${esc(it.reliability)}</span>`);
+    if (it.flair && it.kind === "community") p.push(`<span class="flair">${esc(it.flair)}</span>`);
+    p.push(`<span>${esc(it.source)}</span>`);
+    if ((it.kind === "community" || it.kind === "reddit") && it.upvotes)
+      p.push(`<span>👍 ${short(it.upvotes)} · 💬 ${short(it.comments)}${it.views ? " · 👁 " + short(it.views) : ""}</span>`);
+    if (it.traffic) p.push(`<span>검색 ${esc(it.traffic)}</span>`);
+    if (it.coverage > 1) p.push(`<span>매체 ${it.coverage}곳</span>`);
+    p.push(`<span>${ago(it.published || it.first_seen)}</span>`);
+    return p.join("");
   }
 
   function renderItem(it) {
-    const read = S.read.has(it.url);
-    return `<a class="item${read ? " read" : ""}" href="${esc(it.url)}" target="_blank" rel="noopener" data-url="${esc(it.url)}" style="--c:${gcolor(it.game)}">
+    return `<a class="item${S.read.has(it.url) ? " read" : ""}" href="${esc(it.url)}" target="_blank" rel="noopener" data-url="${esc(it.url)}" style="--c:${gcolor(it.game)}">
       <div class="bar"></div>
-      <div><div class="t">${highlight(it.title)}</div><div class="m">${meta(it)}</div></div>
-      <div class="score" title="화제도 점수">${it.score.toFixed(1)}</div>
+      <div>
+        <div class="t">${isNew(it) ? '<span class="new">NEW</span>' : ""}${it.title_ko ? '<span class="tr" title="자동 번역">번역</span>' : ""}${highlight(titleOf(it))}</div>
+        ${it.title_ko ? `<div class="orig">${highlight(it.title)}</div>` : ""}
+        <div class="m">${meta(it)}</div>
+      </div>
+      <div class="score" title="화제도 점수">${(it.score || 0).toFixed(1)}</div>
     </a>`;
   }
 
   function renderTop(items) {
-    if (S.q || S.sec !== "all") return "";
+    if (S.q || S.sec !== "all" || S.sort === "new") return "";
     const top = items.slice(0, 3);
     if (!top.length) return "";
     return `<div class="top">${top.map((it, i) => {
       const g = gameMeta(it.game);
       return `<a class="topcard" href="${esc(it.url)}" target="_blank" rel="noopener" data-url="${esc(it.url)}" style="--c:${gcolor(it.game)}">
         <div class="rank">TOP ${i + 1} · ${g.emoji} ${esc(g.name)}</div>
-        <div class="t">${esc(it.title)}</div>
-        <div class="m">${esc(it.source)}${it.published ? " · " + ago(it.published) : ""}${it.reliability && it.reliability !== "확인 안 됨" ? " · 신뢰도 " + esc(it.reliability) : ""}</div>
+        <div class="t">${esc(titleOf(it))}</div>
+        ${it.title_ko ? `<div class="orig">${esc(it.title)}</div>` : ""}
+        <div class="m">${esc(it.source)} · ${ago(it.published || it.first_seen)}</div>
       </a>`;
     }).join("")}</div>`;
   }
 
-  function renderChips(all) {
+  function inPeriod(it) {
+    if (!S.period || S.q) return true;
+    return timeOf(it) >= Date.now() - S.period * 3600e3;
+  }
+
+  function renderChips(pool) {
     const counts = {};
-    for (const it of all) counts[it.game] = (counts[it.game] || 0) + 1;
-    const chip = (id, label, n, c) =>
-      `<button class="chip${S.game === id ? " on" : ""}" data-g="${id}" ${c ? `style="--c:${c}"` : ""}>${label}<span class="n">${n}</span></button>`;
-    $("#gameChips").innerHTML = chip("all", "전체", all.length) +
+    for (const it of pool) counts[it.game] = (counts[it.game] || 0) + 1;
+    const chip = (id, label, n, c) => `<button class="chip${S.game === id ? " on" : ""}" data-g="${id}" ${c ? `style="--c:${c}"` : ""}>${label}<span class="n">${n}</span></button>`;
+    $("#gameChips").innerHTML = chip("all", "전체", pool.length) +
       S.index.games.map((g) => chip(g.id, `${g.emoji} ${esc(g.name)}`, counts[g.id] || 0, "#" + g.color)).join("");
   }
 
-  function renderKeywords(data) {
+  const SRC_LABEL = { naver: "네이버", google: "구글", youtube: "유튜브", google_en: "구글(영어)", namu: "나무위키", trends: "구글 트렌드" };
+  function renderKeywords() {
+    const kw = S.keywords?.games || {};
+    const link = (e) => `<a class="${e.tier}" href="https://search.naver.com/search.naver?query=${encodeURIComponent(e.k)}" target="_blank" rel="noopener"
+      title="${esc((e.sources || []).map((s) => SRC_LABEL[s] || s).join(" · "))} · 점수 ${e.score}">${esc(e.k)}${e.new ? '<span class="nb">N</span>' : ""}</a>`;
     const ids = S.game === "all" ? S.index.games.map((g) => g.id) : [S.game];
-    const kwLink = (k, cls = "") => `<a class="${cls}" href="https://www.google.com/search?q=${encodeURIComponent(k)}" target="_blank" rel="noopener">${esc(k)}</a>`;
-    const now = [], neu = [];
-    for (const id of ids) {
-      const g = data.games[id];
-      if (!g) continue;
-      now.push(...(g.suggest || []).slice(0, S.game === "all" ? 4 : 20));
-      neu.push(...g.new_suggest);
-    }
-    $("#kwFor").textContent = S.game === "all" ? "게임별 상위" : gameMeta(S.game).name;
-    $("#kwNow").innerHTML = now.length ? now.map((k) => kwLink(k, neu.includes(k) ? "new" : "")).join("") : `<span class="hint">아직 없음</span>`;
-    $("#kwNewWrap").hidden = !neu.length;
-    $("#kwNew").innerHTML = neu.map((k) => kwLink(k, "new")).join("");
+    $("#kwBody").innerHTML = ids.map((id) => {
+      const list = (kw[id] || []).slice(0, S.game === "all" ? 6 : 30);
+      if (!list.length) return "";
+      const g = gameMeta(id);
+      return `<div class="kwgroup">${S.game === "all" ? `<div class="gname">${g.emoji} ${esc(g.name)}</div>` : ""}<div class="kw">${list.map(link).join("")}</div></div>`;
+    }).join("") || `<div class="hint">아직 수집 전이에요</div>`;
+    $("#kwUpdated").textContent = S.keywords?.updated ? ago(S.keywords.updated) + " 갱신" : "";
   }
 
-  async function renderRanking() {
-    const cutoff = Date.now() - 7 * 86400e3;
-    const ids = S.index.runs.filter((r) => new Date(r.time) >= cutoff).map((r) => r.id);
-    const runs = await Promise.all(ids.map(getRun));
-    const cnt = new Map();
-    for (const run of runs) {
-      if (!run) continue;
-      for (const g of run.games) {
-        if (S.game !== "all" && g.id !== S.game) continue;
-        for (const k of g.suggest) cnt.set(k, (cnt.get(k) || 0) + 1);
-      }
+  function renderChart() {
+    const now = Date.now(), bins = new Array(24).fill(0);
+    for (const r of S.index.runs || []) {
+      const h = Math.floor((now - new Date(r.t)) / 3600e3);
+      if (h >= 0 && h < 24) bins[23 - h] += S.game === "all" ? r.n : (r.c || {})[S.game] || 0;
     }
-    const list = [...cnt.entries()].sort((a, b) => b[1] - a[1]).slice(0, 12);
-    $("#kwRank").innerHTML = list.length
-      ? list.map(([k, n], i) => `<li><span class="no">${i + 1}</span><a href="https://www.google.com/search?q=${encodeURIComponent(k)}" target="_blank" rel="noopener">${esc(k)}</a><span class="cnt">${n}회</span></li>`).join("")
-      : `<li class="hint">데이터가 쌓이면 보여요</li>`;
+    const max = Math.max(1, ...bins);
+    $("#chart").innerHTML = bins.map((v, i) => `<div style="height:${Math.max(3, (v / max) * 100)}%" title="${23 - i}시간 전 · ${v}개"></div>`).join("");
+    $("#chartMax").textContent = `시간당 최대 ${max}개`;
   }
 
-  function renderSpark() {
-    const runs = S.index.runs.slice(0, 21).reverse();
-    const val = (r) => (S.game === "all" ? r.new_count : (r.counts || {})[S.game] || 0);
-    const max = Math.max(1, ...runs.map(val));
-    $("#spark").innerHTML = runs.map((r) =>
-      `<div class="${S.view === "run" && S.runId === r.id ? "on" : ""}" data-run="${r.id}" style="height:${Math.max(3, (val(r) / max) * 100)}%" title="${fmtRun(r)} · 새 소식 ${val(r)}개"></div>`).join("");
-    $("#sparkMax").textContent = `최대 ${max}개`;
-    $("#sparkFrom").textContent = runs.length ? fmtRun(runs[0]) : "";
+  function renderSources() {
+    const kinds = new Set(S.items.map((i) => i.source));
+    const has = (pred) => S.items.some(pred);
+    const list = [
+      ["구글 뉴스", has((i) => i.kind === "news")],
+      ["디시 개념글", kinds.has("디시 개념글")],
+      ["아카 베스트", kinds.has("아카 베스트")],
+      ["Reddit", has((i) => i.kind === "reddit")],
+      ["구글 트렌드", has((i) => i.kind === "trend") || true],
+      ["나무위키", !!S.keywords?.namu_ok],
+    ];
+    $("#srcs").innerHTML = list.map(([n, ok]) => `<span class="${ok ? "" : "off"}" title="${ok ? "수집 중" : "최근 수집 안 됨"}">${n}</span>`).join("");
   }
 
-  async function render() {
-    const data = await currentData();
-    let items = data.items;
-    renderChips(items);
-    if (S.game !== "all") items = items.filter((it) => it.game === S.game);
-    if (S.q) {
-      const ws = S.q.toLowerCase().split(/\s+/).filter(Boolean);
-      items = items.filter((it) => ws.every((w) => it.title.toLowerCase().includes(w)));
-    }
-    items.sort((a, b) => b.score - a.score);
+  function render() {
+    const pool = S.items.filter((it) => inPeriod(it)).filter((it) => {
+      if (!S.q) return true;
+      const t = (it.title + " " + (it.title_ko || "")).toLowerCase();
+      return S.q.toLowerCase().split(/\s+/).filter(Boolean).every((w) => t.includes(w));
+    });
+    renderChips(pool);
+    let items = S.game === "all" ? pool : pool.filter((it) => it.game === S.game);
+    if (S.src !== "all") items = items.filter((it) => (S.src === "news" ? it.kind === "news" || it.kind === "trend" || it.kind === "video" : it.kind === "community" || it.kind === "reddit"));
+    items = [...items].sort((a, b) => b.score - a.score);
     $("#topWrap").innerHTML = renderTop(items);
+    if (S.sort === "new") items.sort((a, b) => timeOf(b) - timeOf(a));
     if (S.sec !== "all") items = items.filter((it) => it.section === S.sec);
     if (S.hideRead) items = items.filter((it) => !S.read.has(it.url));
-
     const shown = items.slice(0, S.limit);
     $("#feed").innerHTML = shown.length ? shown.map(renderItem).join("")
-      : `<div class="empty">${S.q ? "검색 결과가 없어요" : "이 조건에 맞는 새 소식이 없어요 😴<br><small>평일 아침에 더 많이 쌓여요</small>"}</div>`;
+      : `<div class="empty">${S.q ? "검색 결과가 없어요" : "이 조건에 맞는 소식이 없어요 😴<br><small>기간을 늘려 보세요</small>"}</div>`;
     $("#more").innerHTML = items.length > S.limit ? `<button id="moreBtn">더 보기 (${items.length - S.limit}개)</button>` : "";
-    renderKeywords(data);
-    renderSpark();
-    renderRanking();
+    renderKeywords();
+    renderChart();
+    renderSources();
+    renderStatus();
+  }
+
+  function renderStatus() {
+    const mins = (Date.now() - new Date(S.index.updated)) / 60000;
+    const stale = mins > (S.index.interval_minutes || 10) * 4;
+    $("#status").innerHTML = `<span class="dot${stale ? " stale" : ""}"></span><b>${ago(S.index.updated)}</b> 업데이트 · ${S.index.interval_minutes || 10}분마다 자동 수집`;
   }
 
   function markRead(url) {
@@ -449,53 +414,63 @@
     document.querySelectorAll(`[data-url="${CSS.escape(url)}"]`).forEach((el) => el.classList.add("read"));
   }
 
+  function toast(msg) {
+    const t = $("#toast");
+    t.textContent = msg; t.classList.add("show");
+    clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove("show"), 6000);
+  }
+
   // 이벤트
-  $("#viewSeg").addEventListener("click", (e) => {
+  const seg = (sel, attr, key, cast = (v) => v) => $(sel).addEventListener("click", (e) => {
     const b = e.target.closest("button"); if (!b) return;
-    S.view = b.dataset.v; S.limit = 40;
-    document.querySelectorAll("#viewSeg button").forEach((x) => x.classList.toggle("on", x === b));
-    $("#runSel").hidden = S.view !== "run";
+    S[key] = cast(b.dataset[attr]); S.limit = 40; syncSeg(sel, attr, b.dataset[attr]);
+    if (key === "sort") store.set("radar-sort", S.sort);
     render();
   });
-  $("#runSel").addEventListener("change", (e) => { S.runId = e.target.value; render(); });
-  $("#secSeg").addEventListener("click", (e) => {
-    const b = e.target.closest("button"); if (!b) return;
-    S.sec = b.dataset.s; S.limit = 40;
-    document.querySelectorAll("#secSeg button").forEach((x) => x.classList.toggle("on", x === b));
-    render();
-  });
-  $("#gameChips").addEventListener("click", (e) => {
-    const b = e.target.closest(".chip"); if (!b) return;
-    S.game = b.dataset.g; S.limit = 40; render();
-  });
+  seg("#periodSeg", "p", "period", Number);
+  seg("#secSeg", "s", "sec");
+  seg("#srcSeg", "k", "src");
+  seg("#sortSeg", "o", "sort");
+  $("#gameChips").addEventListener("click", (e) => { const b = e.target.closest(".chip"); if (!b) return; S.game = b.dataset.g; S.limit = 40; render(); });
   let qt;
-  $("#q").addEventListener("input", (e) => { clearTimeout(qt); qt = setTimeout(() => { S.q = e.target.value.trim(); S.limit = 40; render(); }, 250); });
+  $("#q").addEventListener("input", (e) => { clearTimeout(qt); qt = setTimeout(() => { S.q = e.target.value.trim(); S.limit = 40; render(); }, 200); });
   $("#hideRead").addEventListener("change", (e) => { S.hideRead = e.target.checked; store.set("radar-hide-read", S.hideRead); render(); });
   $("#markAll").addEventListener("click", () => { document.querySelectorAll("#feed [data-url]").forEach((el) => markRead(el.dataset.url)); if (S.hideRead) render(); });
   document.addEventListener("click", (e) => { const a = e.target.closest("a[data-url]"); if (a) markRead(a.dataset.url); });
   document.addEventListener("auxclick", (e) => { const a = e.target.closest("a[data-url]"); if (a) markRead(a.dataset.url); });
   $("#more").addEventListener("click", (e) => { if (e.target.id === "moreBtn") { S.limit += 40; render(); } });
-  $("#spark").addEventListener("click", (e) => {
-    const d = e.target.closest("[data-run]"); if (!d) return;
-    S.view = "run"; S.runId = d.dataset.run; $("#runSel").value = S.runId; $("#runSel").hidden = false;
-    document.querySelectorAll("#viewSeg button").forEach((x) => x.classList.toggle("on", x.dataset.v === "run"));
-    render();
-  });
+  $("#toast").addEventListener("click", () => { window.scrollTo({ top: 0, behavior: "smooth" }); $("#toast").classList.remove("show"); });
 
-  // 시작
+  async function load(first) {
+    const [index, items, keywords] = await Promise.all([
+      getJSON("data/index.json"), getJSON("data/items.json"), getJSON("data/keywords.json").catch(() => null),
+    ]);
+    const prevUpdated = S.index?.updated;
+    S.index = index; S.items = items.items || []; S.keywords = keywords;
+    if (!first && prevUpdated !== index.updated) {
+      const n = S.items.filter((it) => it.first_seen > prevUpdated).length;
+      if (n) toast(`🔔 새 소식 ${n}개가 들어왔어요`);
+    }
+    render();
+  }
+
+  // 시작 + 2분마다 새 데이터 확인
   (async () => {
-    try {
-      S.index = await getJSON("data/index.json");
-    } catch {
+    try { await load(true); }
+    catch {
       $("#status").textContent = "아직 수집된 데이터가 없어요";
       $("#feed").innerHTML = `<div class="empty">첫 수집이 끝나면 여기에 떡밥이 쌓여요</div>`;
       return;
     }
-    if (!S.index.runs.length) { $("#feed").innerHTML = `<div class="empty">아직 수집된 회차가 없어요</div>`; return; }
-    S.runId = S.index.runs[0].id;
-    $("#runSel").innerHTML = S.index.runs.map((r) => `<option value="${r.id}">${fmtRun(r)} · ${r.new_count}개</option>`).join("");
-    $("#status").innerHTML = `<span class="dot"></span><b>${ago(S.index.updated)}</b> 업데이트 · 다음 수집 ${nextRunText()}`;
-    render();
+    // 'NEW' 기준: 이번 방문 전 마지막 방문 시각. 10초 뒤 이번 방문 시각으로 갱신
+    setTimeout(() => store.set("radar-last-visit", S.index.updated), 10000);
+    setInterval(async () => {
+      try {
+        const idx = await getJSON("data/index.json");
+        if (idx.updated !== S.index.updated) await load(false);
+        else renderStatus();
+      } catch {}
+    }, 120000);
   })();
 })();
 </script>

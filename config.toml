@@ -4,16 +4,27 @@
 # ─────────────────────────────────────────────
 
 [settings]
-# --loop 모드(내 PC/서버에서 상시 실행)일 때 실행 시각 (한국시간)
-schedule = ["07:50", "11:50", "18:50"]
-# 이 시간보다 오래된 글은 "새 소식"으로 치지 않음
+# 웹사이트 주소 (알림 메시지에 링크로 붙음)
+site_url = "https://ttdttas.github.io/subculture-radar/"
+# 수집 간격(분). GitHub 에서는 .github/workflows/radar.yml 의 cron 이 실제 간격을 정함
+interval_minutes = 10
+# 디스코드/텔레그램 알림 시각 (한국시간). 직전 알림 이후 새 소식을 묶어서 보냄
+notify_times = ["07:50", "11:50", "18:50"]
+# 알림 시각부터 이 시간(분) 안에 실행되면 알림 (GitHub 실행이 밀려도 놓치지 않게)
+notify_window_minutes = 60
+# 검색어(자동완성·나무위키)는 요청이 많아서 이 간격(분)으로만 새로 고침
+keyword_refresh_minutes = 30
+# 뉴스는 이 시간 안에 나온 것만, 커뮤니티 글은 이 시간 안에 쓴 것만 수집
 lookback_hours = 14
-# 게임별 카테고리당 최대 표시 개수
+community_hours = 24
+# 사이트에 보관할 기간(일)
+store_days = 14
+# 알림에서 게임별 카테고리당 최대 표시 개수
 max_per_section = 3
-# 이미 보낸 소식을 기억하는 기간(일) — 같은 소식 중복 알림 방지
-seen_retention_days = 7
 # 구글 트렌드 급상승 검색어를 볼 국가
 trend_geos = ["KR", "US", "JP"]
+# 영어·일본어·중국어 제목을 한국어로 자동 번역 (원문도 함께 보관)
+translate = true
 
 # ─── 분류 키워드 (영문은 단어 단위, 한글은 포함 여부로 판단) ───
 [keywords]
@@ -29,18 +40,63 @@ hot = ["논란", "사과", "보상", "화제", "난리", "이슈", "매출", "1�
        "bug", "viral", "drama", "nerf", "buff", "boycott"]
 # 이 단어가 제목/플레어에 있으면 아예 제외 (팬아트·코스프레·짤 위주 글 거르기). 보고 싶으면 지우세요.
 exclude = ["팬아트", "코스프레", "fanart", "fan art", "art by", "cosplay", "OC", "artwork", "comic", "meme", "shitpost",
-           "@"]
+           "@", "🔞", "후방", "ㅇㅎ", "약후", "nsfw"]
+# 디시 말머리 / 아카 탭 / Reddit 플레어가 이것이면 제외 (그림·창작 글 거르기)
+exclude_flair = ["그림", "창작", "팬아트", "만화", "코스프레", "짤", "AI", "Fan Art", "Fanart", "OC", "Meme", "Cosplay", "Artwork"]
+
+# ─── 번역 용어집 ───
+# 번역 전에 먼저 이 표기로 바꿔서 게임·캐릭터 이름이 엉뚱하게 번역되지 않게 함 (긴 것부터 적용)
+[glossary]
+"Genshin Impact" = "원신"
+"Genshin" = "원신"
+"Honkai: Star Rail" = "붕괴: 스타레일"
+"Honkai Star Rail" = "붕괴: 스타레일"
+"Star Rail" = "스타레일"
+"HSR" = "스타레일"
+"Zenless Zone Zero" = "젠레스 존 제로"
+"ZZZ" = "젠존제"
+"Wuthering Waves" = "명조"
+"WuWa" = "명조"
+"Blue Archive" = "블루 아카이브"
+"ブルーアーカイブ" = "블루 아카이브"
+"ブルアカ" = "블루아카"
+"原神" = "원신"
+"崩壊：スターレイル" = "붕괴: 스타레일"
+"ゼンレスゾーンゼロ" = "젠레스 존 제로"
+"ゼンゼロ" = "젠존제"
+"鳴潮" = "명조"
+"HoYoverse" = "호요버스"
+"Kuro Games" = "쿠로게임즈"
+"Trailblazer" = "개척자"
+"Traveler" = "여행자"
+"Traveller" = "여행자"
+"Rover" = "방랑자"
+"Sensei" = "선생님"
+"Proxy" = "로프꾼"
+"Kafka" = "카프카"
+"Raiden" = "라이덴"
+"Snezhnaya" = "스네즈나야"
+"Nod-Krai" = "나드 크라이"
+"Kivotos" = "키보토스"
+"New Eridu" = "뉴 에리두"
+"Solaris-3" = "솔라리스-3"
+"Amphoreus" = "앰포리어스"
 
 # ─── 게임 목록 ───
 # aliases          : 구글 트렌드 급상승 검색어에서 이 게임을 찾을 때 쓰는 이름들
 # news_ko / news_en: 구글 뉴스 검색어 (한국어 / 영어)
-# subreddits       : 커뮤니티 화제글을 볼 Reddit 서브레딧 (Reddit이 클라우드 접속을 막으면 자동으로 건너뜀)
-# suggest_ko / _en : 자동완성(사람들이 많이 검색하는 조합)을 뽑을 씨앗 검색어
+# dcinside         : 디시인사이드 마이너 갤러리 ID (개념글 수집)
+# arca             : 아카라이브 채널 주소 (베스트 수집)
+# subreddits       : Reddit 서브레딧 (클라우드 접속이 막히면 자동으로 건너뜀)
+# suggest_ko       : 구글·네이버·유튜브 자동완성을 뽑을 씨앗 검색어
+# suggest_en       : 구글(영어) 자동완성 씨앗 검색어
 # youtube_channels : (선택) 공식 유튜브 채널 ID. 채널 페이지 → 공유 → 채널 ID 복사
 # color            : 디스코드 카드 색 (16진수)
 
 [[games]]
 id = "bluearchive"
+dcinside = "projectmx"
+arca = "bluearchive"
 name = "블루 아카이브"
 emoji = "📘"
 color = "128AFA"
@@ -48,12 +104,14 @@ aliases = ["블루아카이브", "블루 아카이브", "블루아카", "Blue Ar
 news_ko = ["블루아카이브", "블루 아카이브"]
 news_en = ["\"Blue Archive\"", "\"Blue Archive\" new student"]
 subreddits = ["BlueArchive"]
-suggest_ko = ["블루아카이브", "블루아카 ", "블아 신규"]
+suggest_ko = ["블루아카이브 ", "블루아카 "]
 suggest_en = ["blue archive "]
 youtube_channels = []
 
 [[games]]
 id = "genshin"
+dcinside = "onshinproject"
+arca = "genshin"
 name = "원신"
 emoji = "🌟"
 color = "E8C26B"
@@ -61,12 +119,14 @@ aliases = ["원신", "Genshin", "原神"]
 news_ko = ["원신", "원신 유출"]
 news_en = ["\"Genshin Impact\"", "Genshin leaks"]
 subreddits = ["Genshin_Impact", "Genshin_Impact_Leaks"]
-suggest_ko = ["원신 ", "원신 유출", "원신 픽업"]
+suggest_ko = ["원신 ", "원신 픽업"]
 suggest_en = ["genshin ", "genshin leaks "]
 youtube_channels = []
 
 [[games]]
 id = "zzz"
+dcinside = "zenless_zone_zero"
+arca = "zenlesszonezero"
 name = "젠레스 존 제로"
 emoji = "📺"
 color = "F5D90A"
@@ -80,6 +140,8 @@ youtube_channels = []
 
 [[games]]
 id = "hsr"
+dcinside = "staraiload"
+arca = "hkstarrail"
 name = "붕괴: 스타레일"
 emoji = "🚂"
 color = "9B7BFF"
@@ -87,12 +149,14 @@ aliases = ["스타레일", "붕괴 스타레일", "Star Rail", "Honkai Star Rail
 news_ko = ["스타레일", "스타레일 유출"]
 news_en = ["\"Honkai: Star Rail\"", "Honkai Star Rail leaks"]
 subreddits = ["HonkaiStarRail", "HonkaiStarRail_leaks"]
-suggest_ko = ["스타레일 ", "스타레일 유출"]
+suggest_ko = ["스타레일 ", "붕괴 스타레일 "]
 suggest_en = ["hsr leaks ", "honkai star rail "]
 youtube_channels = []
 
 [[games]]
 id = "wuwa"
+dcinside = "wutheringwaves"
+arca = "wutheringwaves"
 name = "명조: 워더링 웨이브"
 emoji = "🌊"
 color = "2EC4B6"
@@ -101,6 +165,6 @@ aliases = ["명조", "워더링 웨이브", "워더링웨이브", "Wuthering Wav
 news_ko = ["명조 워더링", "명조 쿠로"]
 news_en = ["\"Wuthering Waves\"", "Wuthering Waves leaks"]
 subreddits = ["WutheringWaves", "WutheringWavesLeaks"]
-suggest_ko = ["명조 워더링", "명조 픽업", "명조 신캐"]
+suggest_ko = ["명조 워더링", "명조 "]
 suggest_en = ["wuthering waves ", "wuwa leaks "]
 youtube_channels = []
