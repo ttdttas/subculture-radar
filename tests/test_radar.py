@@ -299,6 +299,14 @@ class RadarTest(unittest.TestCase):
         bad = radar.Item("genshin", "원신 이상한 링크", "javascript:alert(1)", "뉴스")
         self.assertFalse(bad.url.startswith(("https://", "http://")))
 
+    def test_protect_terms(self):
+        q, m = radar.protect_terms("About Raiden in 7.2 Genshin Impact", self.cfg["glossary"])
+        self.assertNotIn("Raiden", q)
+        self.assertNotIn("Genshin", q)
+        out = radar.restore_terms(q.replace("About", "소개:"), m)
+        self.assertEqual(out, "소개: 라이덴 in 7.2 원신")
+        self.assertEqual(radar.restore_terms("zqx0z 에 대해", {"ZQX0Z": "라이덴"}), "라이덴 에 대해")
+
     def test_digest_keeps_coverage(self):
         it = radar.dict_to_item({"game": "genshin", "title": "t", "url": "https://a", "source": "A", "coverage": 3})
         self.assertEqual(it.coverage, 3)

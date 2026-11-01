@@ -73,6 +73,7 @@ EXCERPT_LEN = 180            # 미리보기 글자 수 (원문 재배포가 되�
 DEADLINE = 0.0               # 이 시각(time.time)이 지나면 남은 요청은 다음 회차로
 MAX_NEW_PER_KIND = {"news": 60, "community": 30, "reddit": 20, "trend": 10, "video": 10}  # 한 번에 저장할 게임별 새 소식 수
 TRANSLATE_BACKFILL = 40      # 한 회차에 추가로 번역할 이전 소식 수
+TRANSLATE_VERSION = 2        # 번역 방식이 바뀌면 올림 → 저장된 번역을 다시 함
 
 
 # ════════════════════════════════════════════
@@ -715,12 +716,33 @@ TRANSLATORS = [
 ]
 
 
+def protect_terms(text: str, glossary: dict[str, str]) -> tuple[str, dict[str, str]]:
+    """용어집 단어를 번역기가 건드리지 않는 표시(ZQX0Z…)로 바꿔 둔다.
+    (한국어를 영어 문장 중간에 미리 넣으면 번역기가 헷갈려서 'Raiden' → 'ARE덴' 같은 결과가 나옴)"""
+    mapping: dict[str, str] = {}
+    for src in sorted(glossary, key=len, reverse=True):
+        pat = rf"\b{re.escape(src)}\b" if src.isascii() else re.escape(src)
+
+        def sub(m, ko=glossary[src]):
+            tok = f"ZQX{len(mapping)}Z"
+            mapping[tok] = ko
+            return tok
+        text = re.sub(pat, sub, text, flags=re.IGNORECASE)
+    return text, mapping
+
+
+def restore_terms(text: str, mapping: dict[str, str]) -> str:
+    for tok, ko in mapping.items():
+        text = re.sub(r"\s*".join(tok), ko, text, flags=re.IGNORECASE)
+    return text
+
+
 def translate_ok() -> bool:
     return any(site_ok(name) for name, *_ in TRANSLATORS)
 
 
 def translate_ko(text: str, glossary: dict[str, str]) -> str | None:
-    q = apply_glossary(text, glossary)
+    q, mapping = protect_terms(text, glossary)
     for name, base, params, parse in TRANSLATORS:
         if not site_ok(name):
             continue
@@ -734,7 +756,7 @@ def translate_ko(text: str, glossary: dict[str, str]) -> str | None:
         except Exception:
             continue
         if out:
-            return out
+            return restore_terms(out, mapping)
     return None
 
 
@@ -894,15 +916,19 @@ def collect(cfg: dict, data_dir: Path, now: datetime, force_keywords: bool = Fal
     pats = compile_keywords(cfg["keywords"])
     flair_ex = compile_keywords({"x": cfg["keywords"].get("exclude_flair", [])})["x"]
     glossary = cfg.get("glossary", {})
+    meta = load_json(state_dir / "meta.json", {})
     tr_cache: dict[str, str] = load_json(state_dir / "translations.json", {})
     # 예전 버그로 '용어집만 바뀌고 번역 안 된' 제목은 버리고 다시 번역
     tr_cache = {k: v for k, v in tr_cache.items() if v != apply_glossary(k, cfg.get("glossary", {}))}
-    meta = load_json(state_dir / "meta.json", {})
+    retranslate = meta.get("translate_version", 1) < TRANSLATE_VERSION   # 번역 방식이 바뀌었으면 전부 다시
+    if retranslate:
+        tr_cache = {}
+        meta["translate_version"] = TRANSLATE_VERSION
     store: dict[str, dict] = {d["id"]: d for d in load_json(data_dir / "site" / "data" / "items.json",
                                                              {"items": []}).get("items", [])}
     migrated: dict[str, dict] = {}
     for d in store.values():
-        if d.get("title_ko") and d["title_ko"] == apply_glossary(d["title"], cfg.get("glossary", {})):
+        if d.get("title_ko") and (retranslate or d["title_ko"] == apply_glossary(d["title"], cfg.get("glossary", {}))):
             d["title_ko"] = None
         if d.get("excerpt"):
             d["excerpt"] = make_excerpt(d["excerpt"]) or None
