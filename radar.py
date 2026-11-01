@@ -68,6 +68,7 @@ COMMUNITY_DELAY = 1.0
 TRANSLATE_DELAY = 0.3
 SUGGEST_DELAY = 0.2
 KOREAN_BONUS = 2.0
+DEADLINE = 0.0               # 이 시각(time.time)이 지나면 남은 요청은 다음 회차로
 MAX_NEW_PER_KIND = {"news": 60, "community": 30, "reddit": 20, "trend": 10, "video": 10}  # 한 번에 저장할 게임별 새 소식 수
 TRANSLATE_BACKFILL = 40      # 한 회차에 추가로 번역할 이전 소식 수
 
@@ -272,9 +273,13 @@ def fetch_google_news(game: dict, query: str, lang: str, since: datetime) -> lis
         params = {"q": f"{query} when:2d", "hl": "ko", "gl": "KR", "ceid": "KR:ko"}
     else:
         params = {"q": f"{query} when:2d", "hl": "en-US", "gl": "US", "ceid": "US:en"}
+    if not site_ok("구글 뉴스"):
+        return []
     url = "https://news.google.com/rss/search?" + urllib.parse.urlencode(params)
+    raw = http_get(url, retries=1, timeout=15)
+    site_result("구글 뉴스", raw is not None)
     items = []
-    for e in parse_feed(http_get(url))[:25]:
+    for e in parse_feed(raw)[:25]:
         if e["date"] and e["date"] < since:
             continue
         title, src = e["title"], e["source"]
@@ -320,8 +325,12 @@ def fetch_youtube(game: dict, channel_id: str, since: datetime) -> list[Item]:
 _blocked: dict[str, int] = {}   # 사이트별 연속 실패 수 — 2번 막히면 이번 회차는 건너뜀
 
 
+def past_deadline() -> bool:
+    return bool(DEADLINE) and time.time() > DEADLINE
+
+
 def site_ok(site: str) -> bool:
-    return _blocked.get(site, 0) < 2
+    return _blocked.get(site, 0) < 2 and not past_deadline()
 
 
 def site_result(site: str, ok: bool) -> None:
@@ -598,6 +607,9 @@ def score_keywords(lists: dict[str, list[str]], game: dict, extra: dict[str, dic
 def collect_keywords(cfg: dict, trends: list[dict], namu: list[str]) -> dict[str, list[dict]]:
     out = {}
     for g in cfg["games"]:
+        if past_deadline():
+            log.warning("시간 제한 — 남은 게임의 검색어는 다음에 갱신")
+            break
         lists: dict[str, list[str]] = {"google": [], "naver": [], "youtube": [], "google_en": []}
         for seed in g.get("suggest_ko", []):
             lists["google"] += fetch_google_suggest(seed, "ko")
@@ -817,7 +829,7 @@ def collect(cfg: dict, data_dir: Path, now: datetime, force_keywords: bool = Fal
 
     trends = []
     for geo in st.get("trend_geos", ["KR"]):
-        trends += fetch_trends(geo)
+        trends += fetch_trends(geo) if not past_deadline() else []
     log.info("구글 트렌드 %d개", len(trends))
 
     new_counts: dict[str, int] = {}
@@ -907,7 +919,7 @@ def collect(cfg: dict, data_dir: Path, now: datetime, force_keywords: bool = Fal
         namu = fetch_namu_ranking()
         log.info("나무위키 인기 검색어 %d개", len(namu))
         prev = {gid: {kw_norm(e["k"]) for e in lst} for gid, lst in keywords.get("games", {}).items()}
-        games_kw = collect_keywords(cfg, trends, namu)
+        games_kw = {**keywords.get("games", {}), **collect_keywords(cfg, trends, namu)}
         for gid, lst in games_kw.items():
             for e in lst:
                 e["new"] = bool(prev.get(gid)) and kw_norm(e["k"]) not in prev[gid]
@@ -1104,8 +1116,10 @@ def write_site_data(cfg: dict, data_dir: Path, result: dict) -> None:
 
 
 def run_once(cfg: dict, data_dir: Path, dry_run: bool = False, force_notify: bool = False) -> str:
+    global DEADLINE
     now = datetime.now(KST)
     _blocked.clear()
+    DEADLINE = time.time() + cfg["settings"].get("max_run_seconds", 300)
     result = collect(cfg, data_dir, now, force_keywords=force_notify)
     meta = result["meta"]
     site_url = cfg["settings"].get("site_url", "")

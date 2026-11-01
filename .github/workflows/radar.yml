@@ -2,7 +2,9 @@ name: 서브컬쳐 레이더
 
 on:
   schedule:
-    - cron: "3-59/10 * * * *"  # 10분마다 수집 (매시 3,13,23…분. 정각은 GitHub가 붐벼서 피함)
+    # 10분 간격 실행은 cron-job.org 가 workflow_dispatch 로 깨워 줌 (GitHub 예약은 자주 밀려서)
+    # 이건 cron-job.org 가 멈췄을 때를 대비한 1시간 간격 예비 실행
+    - cron: "17 * * * *"
   workflow_dispatch:
     inputs:
       notify:

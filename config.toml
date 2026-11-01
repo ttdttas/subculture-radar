@@ -14,6 +14,8 @@ notify_times = ["07:50", "11:50", "18:50"]
 notify_window_minutes = 60
 # 검색어(자동완성·나무위키)는 요청이 많아서 이 간격(분)으로만 새로 고침
 keyword_refresh_minutes = 30
+# 한 회차 수집 시간 제한(초). 넘으면 남은 출처는 다음 회차로 (GitHub 실행이 잘리지 않게)
+max_run_seconds = 300
 # 뉴스는 이 시간 안에 나온 것만, 커뮤니티 글은 이 시간 안에 쓴 것만 수집
 lookback_hours = 14
 community_hours = 24

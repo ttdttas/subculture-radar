@@ -117,6 +117,7 @@ class RadarTest(unittest.TestCase):
         self._orig = radar.http_get
         radar.http_get = fake_get
         radar._reddit_token = None
+        radar.DEADLINE = 0
         for k in ("REDDIT_DELAY", "COMMUNITY_DELAY", "TRANSLATE_DELAY", "SUGGEST_DELAY"):
             setattr(radar, k, 0)
 
@@ -233,6 +234,21 @@ class RadarTest(unittest.TestCase):
         radar.run_once(self.cfg, self.tmp)
         rd = next(i for i in self.items() if i["source"] == "r/Genshin_Impact_Leaks")
         self.assertTrue(rd["title_ko"].startswith("[KO] "))
+
+    def test_news_block_and_deadline(self):
+        calls = []
+        radar.http_get = lambda url, *a, **k: calls.append(url) or None
+        radar._blocked.clear()
+        g = self.cfg["games"][1]
+        since = datetime.now(timezone.utc) - timedelta(hours=14)
+        for q in ["a", "b", "c", "d"]:
+            radar.fetch_google_news(g, q, "ko", since)
+        self.assertEqual(len(calls), 2)          # 구글 뉴스 2번 막히면 건너뜀
+        radar._blocked.clear()
+        radar.DEADLINE = time.time() - 1         # 시간 초과면 아예 요청 안 함
+        radar.fetch_google_news(g, "e", "ko", since)
+        radar.DEADLINE = 0
+        self.assertEqual(len(calls), 2)
 
     def test_telegram_html_is_escaped(self):
         it = radar.Item("genshin", "<script>&", "https://ex.com/?a=1&b=2", "src")
