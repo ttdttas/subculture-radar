@@ -71,6 +71,7 @@ class RadarTest(unittest.TestCase):
         radar.http_get = fake_get
         radar._reddit_token = None
         radar._reddit_json_blocked = False
+        radar._reddit_failures = 0
         radar.REDDIT_DELAY = 0
 
     def tearDown(self):
@@ -101,6 +102,15 @@ class RadarTest(unittest.TestCase):
         self.assertIsNotNone(pats["leak"].search("HSR leaks: new path"))
         self.assertIsNotNone(pats["exclude"].search("Hanako (art by @someone)"))
         self.assertIsNone(pats["exclude"].search("Ocean event schedule"))   # 'OC' 오탐 X
+
+    def test_reddit_circuit_breaker(self):
+        calls = []
+        radar.http_get = lambda url, *a, **k: calls.append(url) or None
+        g = self.cfg["games"][1]
+        since = datetime.now(timezone.utc) - timedelta(hours=14)
+        for sub in ["a", "b", "c", "d"]:
+            self.assertEqual(radar.fetch_reddit(g, sub, since), [])
+        self.assertEqual(len(calls), 3)   # a(json+rss), b(rss) 이후엔 요청 안 함
 
     def test_next_run(self):
         now = datetime(2026, 11, 1, 20, 0, tzinfo=radar.KST)

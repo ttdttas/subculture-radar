@@ -281,6 +281,7 @@ def fetch_naver_news(game: dict, query: str, since: datetime) -> list[Item]:
 
 _reddit_token: str | None = None
 _reddit_json_blocked = False
+_reddit_failures = 0          # 연속 실패 횟수 — 2번 막히면 이번 회차엔 Reddit 생략
 
 
 def reddit_token() -> str | None:
@@ -302,7 +303,9 @@ def reddit_token() -> str | None:
 
 
 def fetch_reddit(game: dict, sub: str, since: datetime) -> list[Item]:
-    global _reddit_json_blocked
+    global _reddit_json_blocked, _reddit_failures
+    if _reddit_failures >= 2:
+        return []
     time.sleep(REDDIT_DELAY)          # Reddit 은 연속 요청을 싫어함
     token = reddit_token()
     if token:
@@ -335,8 +338,14 @@ def fetch_reddit(game: dict, sub: str, since: datetime) -> list[Item]:
         return items
     time.sleep(REDDIT_DELAY)
     # JSON 이 막히면 RSS 로 재시도 (점수 정보는 없음)
-    for i, e in enumerate(parse_feed(http_get(f"https://www.reddit.com/r/{sub}/top/.rss?t=day",
-                                              {"User-Agent": REDDIT_UA}))[:20]):
+    rss = http_get(f"https://www.reddit.com/r/{sub}/top/.rss?t=day", {"User-Agent": REDDIT_UA}, retries=1)
+    if rss is None:
+        _reddit_failures += 1
+        if _reddit_failures >= 2:
+            log.warning("Reddit 이 접속을 막고 있어 이번 회차는 Reddit 을 건너뜁니다")
+        return items
+    _reddit_failures = 0
+    for i, e in enumerate(parse_feed(rss)[:20]):
         items.append(Item(game["id"], e["title"], e["link"], f"r/{sub}", "reddit", e["date"], rank=i))
     return items
 

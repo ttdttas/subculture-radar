@@ -14,8 +14,8 @@
 | 구분 | 출처 | 설명 |
 |---|---|---|
 | 📢 공식 / 뉴스 | 구글 뉴스 RSS (한국어 + 영어), 네이버 뉴스 API(선택) | 제목에 게임 이름이 있는 기사만. 여러 매체가 다룬 소식은 하나로 합치고 "매체 N곳"으로 표시 |
-| 🕵️ 떡밥·유출 | Reddit 유출 게시판 (`Genshin_Impact_Leaks`, `HonkaiStarRail_leaks`, `Zenlesszonezeroleaks_`, `WutheringWavesLeaks`) + "유출/루머/베타" 키워드 | 게시판 플레어(Reliable, Datamined, Questionable…)로 **신뢰도** 표시 |
-| 🔥 화제 | Reddit 공식 게시판 인기글, 구글 트렌드 급상승 검색어(한국·미국·일본) | 추천수·댓글수로 점수 |
+| 🕵️ 떡밥·유출 | 유출 소식을 다루는 게임 기사(구글 뉴스 "Genshin leaks" 등) + Reddit 유출 게시판(접속될 때만) + "유출/루머/베타" 키워드 | Reddit 글이면 게시판 플레어(Reliable, Datamined…)로 **신뢰도** 표시 |
+| 🔥 화제 | 구글 트렌드 급상승 검색어(한국·미국·일본), Reddit 인기글(접속될 때만) | 여러 매체가 다룰수록, 최근일수록 점수 ↑ |
 | 🔍 많이 찾는 검색어 | 구글 자동완성 | 사람들이 실제로 검색하는 조합 (예: "원신 7.1 픽업"). 지난 회차에 없던 건 **🆕 새로 뜬 검색어**로 따로 표시 |
 | (선택) 공식 영상 | 유튜브 채널 RSS | `config.toml`에 채널 ID를 넣으면 새 영상 알림 |
 
@@ -38,20 +38,18 @@
    |---|---|
    | `DISCORD_WEBHOOK_URL` | 디스코드 웹후크 URL |
    | `TELEGRAM_BOT_TOKEN` / `TELEGRAM_CHAT_ID` | 텔레그램 토큰 / 채팅 ID |
-   | `REDDIT_CLIENT_ID` / `REDDIT_CLIENT_SECRET` | **강력 추천** — 아래 참고 |
+   | `REDDIT_CLIENT_ID` / `REDDIT_CLIENT_SECRET` | 선택 — 이미 승인받은 Reddit 앱이 있을 때만 |
    | `NAVER_CLIENT_ID` / `NAVER_CLIENT_SECRET` | 선택 — 국내 기사 보강 |
 
 4. **Actions** 탭 → "서브컬쳐 레이더" → **Run workflow** 로 한 번 수동 실행해서 알림이 오는지 확인.
    이후로는 매일 **07:50 / 11:50 / 18:50 (한국시간)** 에 알아서 돌아갑니다.
    (GitHub 사정으로 몇 분~십몇 분 늦게 시작될 수 있어요.)
 
-### Reddit 키를 넣어야 하는 이유
-Reddit은 GitHub 같은 클라우드 서버에서 오는 요청을 자주 막습니다(403/429).
-키 없이도 RSS로 우회는 하지만, 그러면 **추천수·플레어(신뢰도) 정보가 빠지고 일부 게시판은 누락**될 수 있어요.
-
-1. 로그인 후 <https://www.reddit.com/prefs/apps> → **create another app…**
-2. 이름 아무거나, 종류는 **script**, redirect uri 는 `http://localhost:8080`
-3. 앱 이름 아래 짧은 문자열 = `REDDIT_CLIENT_ID`, `secret` = `REDDIT_CLIENT_SECRET`
+### Reddit에 대해
+Reddit은 GitHub 같은 클라우드 서버의 접속을 거의 다 막습니다(403/429).
+2025년 11월부터 새 API 키는 수동 승인제가 됐고, 신규 신청도 사실상 닫혔어요.
+그래서 이 프로그램은 **Reddit이 막히면 그 회차엔 바로 건너뛰고**, 유출 소식은 그 내용을 다룬 게임 기사로 대신 수집합니다.
+이미 승인받은 Reddit 앱이 있다면 `REDDIT_CLIENT_ID` / `REDDIT_CLIENT_SECRET` 를 넣으면 추천수·신뢰도까지 붙어서 더 정확해져요.
 
 ### 네이버 뉴스 API (선택)
 <https://developers.naver.com/apps> → 애플리케이션 등록 → 사용 API에 **검색** 선택 → Client ID / Secret.
