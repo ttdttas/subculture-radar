@@ -495,6 +495,7 @@ def make_excerpt(html_text: str) -> str:
     t = strip_tags(t)
     t = re.sub(r"- dc official App|추천검색\s*새로고침|submitted by\s+/u/\S+|/u/\S+\s*님이 제출|"
                r"\[(?:link|comments|링크|댓글)\]", " ", t)
+    t = re.sub(r"https?://\S+", " ", t)              # 날것의 링크 주소는 읽을 게 없어서 뺌
     t = re.sub(r"\s+", " ", t).strip()
     return t if len(t) <= EXCERPT_LEN else t[:EXCERPT_LEN].rstrip() + "…"
 
