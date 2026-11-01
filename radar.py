@@ -157,7 +157,14 @@ class Item:
 
     @property
     def key(self) -> str:
-        return hashlib.sha1(norm_title(self.title).encode("utf-8")).hexdigest()[:16]
+        return item_key(self.game, self.kind, self.title, self.url)
+
+
+def item_key(game: str, kind: str, title: str, url: str) -> str:
+    """같은 글인지 판단하는 키. 뉴스는 매체가 달라도 같은 소식이면 하나로(제목 기준),
+    커뮤니티 글은 '가슴', 'ㅋㅋ' 같은 짧은 제목이 겹치기 쉬워서 주소 기준. 게임별로 따로."""
+    basis = "t:" + norm_title(title) if kind in ("news", "trend", "video") else "u:" + url
+    return hashlib.sha1(f"{game}|{basis}".encode("utf-8")).hexdigest()[:16]
 
 
 def norm_title(t: str) -> str:
@@ -690,27 +697,51 @@ def source_lang(text: str) -> str:
     return "en"
 
 
+def _parse_gtx(raw: bytes) -> str:
+    return "".join(seg[0] for seg in json.loads(raw)[0] if seg and seg[0]).strip()
+
+
+def _parse_clients5(raw: bytes) -> str:
+    data = json.loads(raw)
+    first = data[0] if data else ""
+    return (first if isinstance(first, str) else first[0]).strip()
+
+
+# GitHub 서버는 여러 사람이 같이 써서 한 주소가 자주 막힘(429) → 막히면 다음 주소로
+TRANSLATORS = [
+    ("구글 번역", "https://translate.googleapis.com/translate_a/single", {"client": "gtx", "dt": "t"}, _parse_gtx),
+    ("구글 번역(2)", "https://translate.google.com/translate_a/single", {"client": "gtx", "dt": "t"}, _parse_gtx),
+    ("구글 번역(3)", "https://clients5.google.com/translate_a/t", {"client": "dict-chrome-ex"}, _parse_clients5),
+]
+
+
+def translate_ok() -> bool:
+    return any(site_ok(name) for name, *_ in TRANSLATORS)
+
+
 def translate_ko(text: str, glossary: dict[str, str]) -> str | None:
-    if not site_ok("구글 번역"):
-        return None
     q = apply_glossary(text, glossary)
-    url = "https://translate.googleapis.com/translate_a/single?" + urllib.parse.urlencode(
-        {"client": "gtx", "sl": source_lang(text), "tl": "ko", "dt": "t", "q": q})
-    raw = http_get(url, retries=0, timeout=10)
-    site_result("구글 번역", raw is not None)
-    if not raw:
-        return None
-    try:
-        out = "".join(seg[0] for seg in json.loads(raw)[0] if seg and seg[0]).strip()
-    except Exception:
-        return None
-    return out or None
+    for name, base, params, parse in TRANSLATORS:
+        if not site_ok(name):
+            continue
+        url = base + "?" + urllib.parse.urlencode({**params, "sl": source_lang(text), "tl": "ko", "q": q})
+        raw = http_get(url, retries=0, timeout=10)
+        site_result(name, raw is not None)
+        if not raw:
+            continue
+        try:
+            out = parse(raw)
+        except Exception:
+            continue
+        if out:
+            return out
+    return None
 
 
 def translate_items(items: list[Item], cache: dict[str, str], glossary: dict[str, str]) -> int:
     done = 0
     for it in items:
-        if not site_ok("구글 번역"):
+        if not translate_ok():
             break
         if not needs_translation(it.title):
             continue
@@ -848,7 +879,9 @@ def dict_to_item(d: dict) -> Item:
     it = Item(d["game"], d["title"], d["url"], d["source"], d.get("kind", "news"),
               parse_date(d.get("published")), upvotes=d.get("upvotes", 0), comments=d.get("comments", 0),
               views=d.get("views", 0), flair=d.get("flair", ""), traffic=d.get("traffic", ""),
-              title_ko=d.get("title_ko") or "", tags=set(d.get("tags", [])), score=d.get("score", 0))
+              title_ko=d.get("title_ko") or "", tags=set(d.get("tags", [])), score=d.get("score", 0),
+              excerpt=d.get("excerpt") or "")
+    it.outlets = {f"#{i}" for i in range(max(1, d.get("coverage", 1)))}   # 매체 수만 필요
     return it
 
 
@@ -867,9 +900,16 @@ def collect(cfg: dict, data_dir: Path, now: datetime, force_keywords: bool = Fal
     meta = load_json(state_dir / "meta.json", {})
     store: dict[str, dict] = {d["id"]: d for d in load_json(data_dir / "site" / "data" / "items.json",
                                                              {"items": []}).get("items", [])}
+    migrated: dict[str, dict] = {}
     for d in store.values():
         if d.get("title_ko") and d["title_ko"] == apply_glossary(d["title"], cfg.get("glossary", {})):
             d["title_ko"] = None
+        if d.get("excerpt"):
+            d["excerpt"] = make_excerpt(d["excerpt"]) or None
+        d["id"] = item_key(d["game"], d.get("kind", "news"), d["title"], d["url"])
+        if d["id"] not in migrated or d["first_seen"] < migrated[d["id"]]["first_seen"]:
+            migrated[d["id"]] = d
+    store = migrated
     news_since = now - timedelta(hours=st.get("lookback_hours", 14))
     comm_since = now - timedelta(hours=st.get("community_hours", 24))
     now_iso = now.isoformat(timespec="seconds")
@@ -899,7 +939,8 @@ def collect(cfg: dict, data_dir: Path, now: datetime, force_keywords: bool = Fal
 
         apat = alias_pattern(g["aliases"])
         raw = [it for it in raw
-               if not (it.kind == "news" and not apat.search(it.title))          # 게임 이름 없는 기사 제외
+               if it.url.startswith(("https://", "http://"))                     # 이상한 주소 제외
+               and not (it.kind == "news" and not apat.search(it.title))          # 게임 이름 없는 기사 제외
                and not (it.kind != "trend" and pats["exclude"].search(it.title))  # 팬아트 등 제외
                and not (it.flair and flair_ex.search(it.flair))]                  # 말머리로 제외
         items = merge_duplicates(raw)
@@ -952,14 +993,14 @@ def collect(cfg: dict, data_dir: Path, now: datetime, force_keywords: bool = Fal
         log.info("디시 글 미리보기 %d개", got)
 
     # 지난 회차에 번역 못 한 제목 채우기 (번역이 막혔던 경우)
-    if st.get("translate", True) and site_ok("구글 번역"):
+    if st.get("translate", True) and translate_ok():
         todo = sorted((d for d in store.values() if not d.get("title_ko") and needs_translation(d["title"])),
                       key=lambda d: -d.get("score", 0))[:TRANSLATE_BACKFILL]
         filled = 0
         for d in todo:
             ko = tr_cache.get(d["title"]) or translate_ko(d["title"], glossary)
             if not ko:
-                if not site_ok("구글 번역"):
+                if not translate_ok():
                     break
                 continue
             d["title_ko"] = tr_cache[d["title"]] = ko
@@ -971,7 +1012,7 @@ def collect(cfg: dict, data_dir: Path, now: datetime, force_keywords: bool = Fal
     # 오래된 소식 정리
     cutoff = (now - timedelta(days=st.get("store_days", 14))).isoformat()
     items_out = sorted((d for d in store.values() if d["first_seen"] >= cutoff),
-                       key=lambda d: d["first_seen"], reverse=True)
+                       key=lambda d: d["first_seen"], reverse=True)[:st.get("store_max_items", 3000)]
 
     # 검색어는 keyword_refresh_minutes 마다만 새로 (요청 수 줄이기)
     keywords = load_json(data_dir / "site" / "data" / "keywords.json", {})

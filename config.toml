@@ -21,6 +21,8 @@ lookback_hours = 14
 community_hours = 24
 # 사이트에 보관할 기간(일)
 store_days = 14
+# 사이트에 보관할 최대 글 수 (너무 많으면 휴대폰에서 느려짐)
+store_max_items = 3000
 # 알림에서 게임별 카테고리당 최대 표시 개수
 max_per_section = 3
 # 구글 트렌드 급상승 검색어를 볼 국가

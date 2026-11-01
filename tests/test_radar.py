@@ -258,6 +258,51 @@ class RadarTest(unittest.TestCase):
         radar.DEADLINE = 0
         self.assertEqual(len(calls), 2)
 
+    def test_item_key(self):
+        # 짧은 제목이 같아도 다른 글(주소가 다름)이면 다른 키, 뉴스는 매체 달라도 같은 제목이면 같은 키
+        a = radar.Item("genshin", "가슴", "https://gall.dcinside.com/x?no=1", "디시 개념글", "community")
+        b = radar.Item("genshin", "가슴", "https://gall.dcinside.com/x?no=2", "디시 개념글", "community")
+        c = radar.Item("hsr", "가슴", "https://gall.dcinside.com/x?no=1", "디시 개념글", "community")
+        self.assertEqual(len({a.key, b.key, c.key}), 3)
+        n1 = radar.Item("genshin", "원신 7.2 출시", "https://a.com/1", "A")
+        n2 = radar.Item("genshin", "[속보] 원신 7.2 출시", "https://b.com/2", "B")
+        self.assertEqual(n1.key, n2.key)
+
+    def test_translate_fallback(self):
+        # 첫 번째 번역 주소가 막히면 다음 주소로
+        def fg(url, *a, **k):
+            if "translate.googleapis.com" in url or "translate.google.com" in url:
+                return None
+            if "clients5.google.com" in url:
+                return json.dumps(["번역됨"]).encode()
+            return fake_get(url, *a, **k)
+        radar.http_get = fg
+        radar._blocked.clear()
+        self.assertEqual(radar.translate_ko("Hello world", {}), "번역됨")
+
+    def test_store_migration_and_url_filter(self):
+        # 예전 키로 저장된 글 → 새 키로 바뀌고 중복 없이 유지
+        d = self.tmp / "site" / "data"
+        d.mkdir(parents=True)
+        old = {"id": "oldkey", "game": "genshin", "kind": "community", "title": "원신 7.3 신캐 스킬 정리",
+               "url": "https://gall.dcinside.com/mgallery/board/view/?id=onshinproject&no=2",
+               "source": "디시 개념글", "first_seen": (KNOW - timedelta(hours=1)).isoformat(timespec="seconds"), "score": 1,
+               "excerpt": "본문 https://x.com/a 끝"}
+        (d / "items.json").write_text(json.dumps({"items": [old]}), "utf-8")
+        radar.run_once(self.cfg, self.tmp)
+        items = [i for i in self.items() if i["title"] == "원신 7.3 신캐 스킬 정리"]
+        self.assertEqual(len(items), 1)                     # 같은 글로 인식 → 새 소식으로 중복 안 됨
+        self.assertNotEqual(items[0]["id"], "oldkey")
+        self.assertEqual(items[0]["excerpt"], "본문 끝")     # 예전 미리보기도 링크 주소 정리
+        # javascript: 같은 주소는 버림
+        g = self.cfg["games"][1]
+        bad = radar.Item("genshin", "원신 이상한 링크", "javascript:alert(1)", "뉴스")
+        self.assertFalse(bad.url.startswith(("https://", "http://")))
+
+    def test_digest_keeps_coverage(self):
+        it = radar.dict_to_item({"game": "genshin", "title": "t", "url": "https://a", "source": "A", "coverage": 3})
+        self.assertEqual(it.coverage, 3)
+
     def test_telegram_html_is_escaped(self):
         it = radar.Item("genshin", "<script>&", "https://ex.com/?a=1&b=2", "src")
         s = radar.fmt_item(it, datetime.now(timezone.utc), "html")

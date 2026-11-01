@@ -276,6 +276,7 @@
   const gameMeta = (id) => (S.index?.games || []).find((g) => g.id === id) || { name: id, emoji: "🎮", color: "888888" };
   const gcolor = (id) => "#" + gameMeta(id).color;
   const titleOf = (it) => it.title_ko || it.title;
+  const safeUrl = (u) => (/^https?:\/\//i.test(u || "") ? u : "#");
   const timeOf = (it) => new Date(it.published || it.first_seen).getTime();
   const isNew = (it) => S.lastVisit && it.first_seen > S.lastVisit;
   const short = (n) => (n >= 10000 ? (n / 10000).toFixed(1) + "만" : n >= 1000 ? (n / 1000).toFixed(1) + "k" : n);
@@ -335,8 +336,8 @@
     return `<div class="detail">${body}
       <dl class="info">${rows.map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join("")}</dl>
       <div class="btns">
-        <a class="btn primary" href="${esc(it.url)}" target="_blank" rel="noopener" data-url="${esc(it.url)}">원문 열기 ↗</a>
-        <button class="btn" data-copy="${esc(it.url)}">🔗 링크 복사</button>
+        <a class="btn primary" href="${esc(safeUrl(it.url))}" target="_blank" rel="noopener" data-url="${esc(it.url)}">원문 열기 ↗</a>
+        <button class="btn" data-copy="${esc(safeUrl(it.url))}">🔗 링크 복사</button>
         <button class="btn" data-close>접기</button>
       </div></div>`;
   }
@@ -351,7 +352,7 @@
         ${detailHTML(it)}
       </div>
       <div class="acts">
-        <a class="go" href="${esc(it.url)}" target="_blank" rel="noopener" data-url="${esc(it.url)}" title="원문 열기">↗</a>
+        <a class="go" href="${esc(safeUrl(it.url))}" target="_blank" rel="noopener" data-url="${esc(it.url)}" title="원문 열기">↗</a>
         <div class="score" title="화제도 점수">${(it.score || 0).toFixed(1)}</div>
       </div>
     </div>`;
@@ -363,7 +364,7 @@
     if (!top.length) return "";
     return `<div class="top">${top.map((it, i) => {
       const g = gameMeta(it.game);
-      return `<a class="topcard" href="${esc(it.url)}" data-top="${esc(it.id)}" style="--c:${gcolor(it.game)}">
+      return `<a class="topcard" href="${esc(safeUrl(it.url))}" data-top="${esc(it.id)}" style="--c:${gcolor(it.game)}">
         <div class="rank">TOP ${i + 1} · ${g.emoji} ${esc(g.name)}</div>
         <div class="t">${esc(titleOf(it))}</div>
         ${it.title_ko ? `<div class="orig">${esc(it.title)}</div>` : ""}
@@ -539,8 +540,10 @@
       $("#feed").innerHTML = `<div class="empty">첫 수집이 끝나면 여기에 떡밥이 쌓여요</div>`;
       return;
     }
-    // 'NEW' 기준: 이번 방문 전 마지막 방문 시각. 10초 뒤 이번 방문 시각으로 갱신
-    setTimeout(() => store.set("radar-last-visit", S.index.updated), 10000);
+    // 'NEW' 기준: 지난번에 페이지를 떠날 때 보고 있던 데이터 시각
+    const saveVisit = () => { if (S.index?.updated) store.set("radar-last-visit", S.index.updated); };
+    document.addEventListener("visibilitychange", () => { if (document.visibilityState === "hidden") saveVisit(); });
+    window.addEventListener("pagehide", saveVisit);
     setInterval(async () => {
       try {
         const idx = await getJSON("data/index.json");
