@@ -272,7 +272,17 @@
   const syncSeg = (sel, attr, val) => document.querySelectorAll(`${sel} button`).forEach((x) => x.classList.toggle("on", x.dataset[attr] === String(val)));
   syncSeg("#sortSeg", "o", S.sort);
 
-  const getJSON = (u) => fetch(u + "?t=" + Date.now()).then((r) => { if (!r.ok) throw new Error(r.status); return r.json(); });
+  // 데이터는 10분마다 갱신되는 data 브랜치에서 직접 읽음 (GitHub Pages 배포가 밀리거나 멈춰도 최신 유지)
+  // 실패하면 사이트와 함께 배포된 data/ 폴더를 씀
+  const DATA_SOURCES = ["https://raw.githubusercontent.com/ttdttas/subculture-radar/data/site/data/", "data/"];
+  const fetchJSON = (u) => fetch(u + "?t=" + Date.now(), { cache: "no-store" }).then((r) => { if (!r.ok) throw new Error(r.status); return r.json(); });
+  async function getJSON(path) {
+    let err;
+    for (const base of DATA_SOURCES) {
+      try { return await fetchJSON(base + path.replace(/^data\//, "")); } catch (e) { err = e; }
+    }
+    throw err;
+  }
   const gameMeta = (id) => (S.index?.games || []).find((g) => g.id === id) || { name: id, emoji: "🎮", color: "888888" };
   const gcolor = (id) => "#" + gameMeta(id).color;
   const titleOf = (it) => it.title_ko || it.title;
